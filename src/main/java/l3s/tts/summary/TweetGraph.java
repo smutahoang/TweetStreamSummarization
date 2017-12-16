@@ -2,100 +2,93 @@ package l3s.tts.summary;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
-import org.jgrapht.graph.SimpleDirectedWeightedGraph;
+import org.jgrapht.graph.SimpleDirectedGraph;
 
-import l3s.tts.configure.Configure;
-import l3s.tts.utils.Node;
+import cmu.arktweetnlp.Tagger.TaggedToken;
+import l3s.tts.utils.Tweet;
+import l3s.tts.utils.TweetPreprocessingUtils;
 
 public class TweetGraph {
-	private SimpleDirectedWeightedGraph<Node, DefaultWeightedEdge> directedGraph;
-	private Map<String, Long> setOfTweets;
-	private HashMap<String, Node> wordNodeMap;
+	private TweetPreprocessingUtils preprocessingUtils;
+	SimpleDirectedGraph<Node, DefaultWeightedEdge> graph;
+	HashMap<String, Node> wordNodeMap;
+	
 	public TweetGraph() {
 		// TODO Auto-generated constructor stub
-		directedGraph = new SimpleDirectedWeightedGraph<Node, DefaultWeightedEdge>(DefaultWeightedEdge.class);
-		setOfTweets = new HashMap<String, Long>();
 		wordNodeMap = new HashMap<String, Node>();
+		graph = new SimpleDirectedGraph<Node, DefaultWeightedEdge>(DefaultWeightedEdge.class);
+		preprocessingUtils = new TweetPreprocessingUtils();
 	}
-
-	public SimpleDirectedWeightedGraph<Node, DefaultWeightedEdge> getGraph() {
-		return directedGraph;
-	}
-
-	public void addNewTweet(int tweetId, String tweet) {
-		setOfTweets.put(tweet, System.currentTimeMillis());
-		
-		String[] words = tweet.split(" ");
-		boolean isPrevVertexNew = true;
-		boolean isCurVertexNew = true;
-		Node preVertex = null;
-		Node curVertex = null;
-		for (int i = 0; i < words.length; i++) {
-			String word = words[i].trim();
-			if(word.length() == 0) continue;
+	/**
+	 * add a new tweet into graph
+	 * @param tweet: new tweet
+	 * @param index: index of tweet
+	 */
+	public void addNewTweet(Tweet tweet, int index) {
+		// iterate all tagged words in the tweet
+		List<TaggedToken> tokens = tweet.getTaggedTokens(preprocessingUtils);
+		boolean isPrevNodeNew = true;
+		boolean isCurNodeNew = true;
+		Node preNode = null;
+		Node curNode = null;
+		for (int i = 0; i < tokens.size(); i++) {
+			
 			// if graph contained this node
-			if(wordNodeMap.containsKey(word)) {
-				isCurVertexNew = false;
+			if(wordNodeMap.containsKey(tokens.get(i).token+"/"+tokens.get(i).tag)) {
+				isCurNodeNew = false;
 				
-				curVertex = wordNodeMap.get(word);
-				curVertex.addNewTweetPosPair(tweetId, i, tweet);
+				curNode = wordNodeMap.get(tokens.get(i).token+"/"+tokens.get(i).tag);
+				curNode.addNewTweetPosPair(index, i);
 				
-			} else {
-				curVertex = new Node();
-				curVertex.setNodeName(word);
+			} else { // if graph doesnt contain this node
+				curNode = new Node(); // create a new node
+				curNode.setNodeName(tokens.get(i).token+"/"+tokens.get(i).tag);
 				
-				curVertex.addNewTweetPosPair(tweetId, i, tweet);
-				directedGraph.addVertex(curVertex);
-				wordNodeMap.put(word, curVertex);
-				isCurVertexNew = true;
+				curNode.addNewTweetPosPair(index, i); // add a pair of sentence Id and position of word in the node
+				graph.addVertex(curNode); // add new node into graph
+				wordNodeMap.put(tokens.get(i).token+"/"+tokens.get(i).tag, curNode);
+				isCurNodeNew = true;
 			}
-			if(isPrevVertexNew || isCurVertexNew) {
-				// stop adding new edge if we reach to an ending token
-				if(preVertex!= null &&!curVertex.equals(preVertex)&& !preVertex.getNodeName().matches(Configure.ENDTOKENS)) {
-					directedGraph.addEdge(preVertex, curVertex);
+			if(isPrevNodeNew || isCurNodeNew) { // if current node or previous node is a new node, add a new edge into graoh
+				// check if current node is the first node in the graph
+				if(preNode!= null &&!curNode.equals(preNode)) {//&& !preNode.getNodeName().matches(Configure.ENDTOKENS)) {
+					graph.addEdge(preNode, curNode);
 				}
 			} else {
-				DefaultWeightedEdge edge = directedGraph.getEdge(preVertex, curVertex);
+				DefaultWeightedEdge edge = graph.getEdge(preNode, curNode);
 				if(edge == null) {
-					if(!curVertex.equals(preVertex)&&!preVertex.getNodeName().matches(Configure.ENDTOKENS))
-						directedGraph.addEdge(preVertex, curVertex);
+					if(!curNode.equals(preNode))// && !preNode.getNodeName().matches(Configure.ENDTOKENS))
+						graph.addEdge(preNode, curNode);
 				} else {
-					double weight = directedGraph.getEdgeWeight(edge) + 1.0;
-					directedGraph.setEdgeWeight(edge, weight);
+					double weight = graph.getEdgeWeight(edge) + 1.0;
+					graph.setEdgeWeight(edge, weight);
 				}
 			}
-			preVertex = curVertex;
-			isPrevVertexNew = isCurVertexNew;
+			preNode = curNode;
+			isPrevNodeNew = isCurNodeNew;
 		}
 	}
 	
-	public Set<Node> getNodeList() {
-		return directedGraph.vertexSet();
-	}
-	public Set<DefaultWeightedEdge> getEdgeList() {
-		return directedGraph.edgeSet();
-	}
 	public void printGraph() {
-		Set<Node> vertexSet = directedGraph.vertexSet();
+		Set<Node> vertexSet = graph.vertexSet();
 		Iterator<Node> iter = vertexSet.iterator();
 		int i = 0;
 		while(iter.hasNext()) {
 			Node n = iter.next();
-			Set<DefaultWeightedEdge> edgesOfNode = directedGraph.edgesOf(n);
+			Set<DefaultWeightedEdge> edgesOfNode = graph.edgesOf(n);
 			for(DefaultWeightedEdge edge: edgesOfNode) {
-				Node sourceNode = directedGraph.getEdgeSource(edge);
-				Node targetNode = directedGraph.getEdgeTarget(edge);
+				Node sourceNode = graph.getEdgeSource(edge);
+				Node targetNode = graph.getEdgeTarget(edge);
 				if(targetNode.getNodeName().equals(n.getNodeName())) continue;
-				double weight = directedGraph.getEdgeWeight(edge); 
+				double weight = graph.getEdgeWeight(edge); 
 				System.out.printf("%d. %s --> %s: %.1f\n", i,  sourceNode, targetNode, weight); 
 				i++;
 			}
 		}
 		
 	}
-
 }

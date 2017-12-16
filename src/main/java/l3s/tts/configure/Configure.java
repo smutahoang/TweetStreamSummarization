@@ -8,6 +8,7 @@ public class Configure {
 	public static String STOPWORD_PATH;
 	public static String WORKING_DIRECTORY;
 	public static String PROPERTIES_PATH;
+	public static String TAGGING_MODEL;
 	public static int MAX_SUMMARIES = 5;
 	public static int PERMISSABLE_GAP = 3;
 	public static int SAMPLE_NUMBER = 4;
@@ -15,6 +16,7 @@ public class Configure {
 	public static String ENDTOKENS = "\\./\\.|!/!|\\?/\\?";
 	public static String[] VSN_TAGs = { "/jj", "/rb", "/prp$", "/vbg", "/nn", "/dt", "it/prp", "if/", "for/" };
 	public static String VSN_NAME = "^(its/|the/|when/|a/|an/|this/|the/|they/|it/|i/|we/|our/).*";
+	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
 
 	public static String VALID_CANDIDATE1 = ".*(/jj)*.*(/nn)+.*(/vb)+.*(/jj)+.*";
 	public static String VALID_CANDIDATE2 = ".*(/dt).*";
@@ -38,6 +40,7 @@ public class Configure {
 	public Configure() {
 		// TODO Auto-generated constructor stub
 		WORKING_DIRECTORY = "D:\\Alexandria\\summarization\\TweetStreamSummarization\\data";
+		TAGGING_MODEL = WORKING_DIRECTORY+"//taggingModel//model.irc.20121211";
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 		PROPERTIES_PATH = String.format("%s/summrary.properties", WORKING_DIRECTORY);
 	}
