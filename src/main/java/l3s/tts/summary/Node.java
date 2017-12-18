@@ -38,8 +38,8 @@ public class Node {
 	}
 	
 	public boolean isVSN() {
-		String tagName = nodeName.substring(nodeName.indexOf("/"));
-		if (getAveragePos() <= Configure.VSN_POS && ((new HashSet<String>(Configure.VSN_POS)).contains(tagName)||nodeName.matches(Configure.VSN_NAME))) {
+		//String tagName = nodeName.substring(nodeName.indexOf("/"));
+		if (getAveragePos() <= Configure.VSN_POS && (nodeName.matches(Configure.VSN_TAGs)||nodeName.matches(Configure.VSN_NAME))) {
             return true;
         }
         return false;

@@ -174,13 +174,13 @@ public class Candidate {
 		int index2= other.getNodeList().indexOf(node);
 		HashSet<Node> list1 = new HashSet<Node>();
 		HashSet<Node> list2 = new HashSet<Node>();
-		
+		// compute the similarity score of the candidate's head
 		if(position == 0) {
 			for(int i = 0; i<index1; i++) 
 				list1.add(this.getNodeList().get(i));
 			for(int i = 0; i<index2; i++)
 				list2.add(other.getNodeList().get(i));
-			
+		// compute the similarity score
 		} else {
 			for(int i = index1; i<this.getNodeList().size(); i++) 
 				list1.add(this.getNodeList().get(i));
@@ -192,7 +192,7 @@ public class Candidate {
 		HashSet<Node> intersection = new HashSet<Node>(list1);
 		union.addAll(list2);
 		intersection.retainAll(list2);
-		if(intersection.size() == list1.size()|| intersection.size() == list2.size()) return 1;
+	//	if(intersection.size() == list1.size()|| intersection.size() == list2.size()) return 1;
 		result = (double)intersection.size()/union.size();
 		return result;
 	}

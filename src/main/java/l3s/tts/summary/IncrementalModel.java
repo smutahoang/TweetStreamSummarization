@@ -23,6 +23,7 @@ public class IncrementalModel extends SummarizationModel {
 		recentTweets = new LinkedList<Tweet>();
 
 	}
+
 	/**
 	 * read tweets from stream and start generate summary
 	 */
@@ -38,12 +39,11 @@ public class IncrementalModel extends SummarizationModel {
 
 			if (nOfTweets == Configure.TWEET_WINDOW) {
 				generateSummary();
-				// printCandidates();
-				//System.exit(-1);
+		
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
 				update();
-				reGenerateSummary();
+				
 			}
 
 		}
@@ -52,16 +52,20 @@ public class IncrementalModel extends SummarizationModel {
 	}
 
 	public void generateSummary() {
-		System.out.println(">>>>>>>>>>>>Find valid paths");
+		System.out.println("\n>>>>>>>>>>>>Find valid paths");
 		findingCandidates();
-		System.out.println(">>>>>>>>>>>>Remove duplicates");
+		
+		System.out.println("\n>>>>>>>>>>>>Remove duplicates");
 		removeDuplicates();
-		System.out.println(">>>>>>>>>>>>Combine valid paths");
+		
+		System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 		combineTweets();
+		
+		System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 		ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
 		for (Candidate can : summary)
 			System.out.println(can);
-		System.out.println("Number of sentences in the summary: " + summary.size());
+		System.out.println("\nNumber of sentences in the summary: " + summary.size());
 		affectedNodes.clear();
 
 	}
@@ -74,20 +78,24 @@ public class IncrementalModel extends SummarizationModel {
 			int[] indexOfAffectedNode = new int[affectedNodes.size()];
 			// resample old candidates and find a new valid starting nodes
 			int size = candidates.size();
+			System.out.println("current candidates: "+candidates.size());
 			for (int k = 0; k < size; k++) {
 				Candidate can = candidates.get(k);
+				System.out.println(k);
 				if (can.getIsCollapse()) {
 					candidates.remove(can);
+					size--;
+					k--;
 					continue;
 				}
 				// find the first affected node in a old candidate
 				int firstAffectedNode = -1;
 				for (int i = 0; i < affectedNodes.size(); i++) {
 					int index = can.getNodeList().indexOf(affectedNodes.get(i));
-					
+
 					if (index != -1 && index < firstAffectedNode)
 						firstAffectedNode = index;
-					if(index !=-1 && index+1< indexOfAffectedNode[i]) {
+					if (index != -1 && index + 1 < indexOfAffectedNode[i]) {
 						indexOfAffectedNode[i] = index;
 					}
 				}
@@ -99,11 +107,11 @@ public class IncrementalModel extends SummarizationModel {
 						sampleAValidPath(newCan, can.getNodeList().get(firstAffectedNode));
 					}
 					candidates.remove(can);
-				} 
+				}
 			}
 			// sample for new valid starting nodes
-			for(int i = 0; i< indexOfAffectedNode.length; i++) {
-				if(indexOfAffectedNode[i] == 0 && affectedNodes.get(i).isVSN()) {
+			for (int i = 0; i < indexOfAffectedNode.length; i++) {
+				if (indexOfAffectedNode[i] == 0 && affectedNodes.get(i).isVSN()) {
 					Candidate can = new Candidate();
 					can.addNode(affectedNodes.get(i));
 					sampleAValidPath(can, affectedNodes.get(i));
@@ -119,10 +127,11 @@ public class IncrementalModel extends SummarizationModel {
 
 	}
 
-	/*public boolean isTimeToUpdate() {
-
-		return false;
-	}*/
+	/*
+	 * public boolean isTimeToUpdate() {
+	 * 
+	 * return false; }
+	 */
 
 	public void update() {
 		removeOldestTweets();

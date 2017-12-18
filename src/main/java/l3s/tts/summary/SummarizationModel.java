@@ -109,7 +109,6 @@ public class SummarizationModel {
 				continue;
 			}
 			int i = 0;
-
 			//double[] weights;
 			// for each VSN, we will sample some valid paths
 			while (i < Configure.SAMPLE_NUMBER) {// iterate to sample
@@ -142,6 +141,7 @@ public class SummarizationModel {
 				can.addNode(nextNode);
 				if (can.isValidCandidate()) {
 					candidates.add(can);
+					//System.out.println(can);
 				}
 				if(graph.outgoingEdgesOf(nextNode).size() == 0 || Configure.STOP_AT_ENDINGTOKENS)
 					break;
@@ -161,10 +161,15 @@ public class SummarizationModel {
 				if (candidates.get(j).getIsDiscard())
 					continue;
 				if (candidates.get(i).computeJaccardScore(candidates.get(j)) > Configure.DUPLICATE_THRESOLD) {
-					if (candidates.get(i).getScore() > candidates.get(j).getScore())
+					if (candidates.get(i).getScore() > candidates.get(j).getScore()) {
 						candidates.get(j).setIsDiscard(true);
-					else
+						//System.out.println("--> remove: "+ candidates.get(j));
+						
+					} else {
 						candidates.get(i).setIsDiscard(true);
+						//System.out.println("--> remove: " + candidates.get(i));
+						break;
+					}
 				}
 			}
 		}
@@ -204,7 +209,7 @@ public class SummarizationModel {
 			List<Node> currNodeList = candidates.get(j).getNodeList();
 			List<Candidate> ccCandidate = new ArrayList<Candidate>();
 
-			int i = 0; // iterate all nodes of the jth candidate
+			int i;// iterate all nodes of the jth candidate
 			for (i = 0; i < currNodeList.size(); i++) {
 				Node node = currNodeList.get(i);
 
@@ -212,6 +217,7 @@ public class SummarizationModel {
 					continue;
 				 // if this sentence contain a collapsible node, we will find a way to combine aspects of prefixes
 				ccCandidate.add(candidates.get(j));
+				
 				for (int k = j + 1; k < numOfCandidates; k++) {
 					List<Node> kCanNodeList = candidates.get(k).getNodeList();
 					if (!kCanNodeList.contains(node) || !candidates.get(k).getIsCollapse()
@@ -221,23 +227,27 @@ public class SummarizationModel {
 					if (candidates.get(k).getNodeList().indexOf(node) == candidates.get(k).getNodeList().size())
 						continue;
 					double prefixOverlap = candidates.get(j).computeJaccardScore(candidates.get(k), node, 0);
-
+					
+			
 					if (prefixOverlap >= Configure.DUPLICATE_PREFIX_THRESOLD
 							&& isCombined(ccCandidate, candidates.get(k), node)) {
 						ccCandidate.add(candidates.get(k));
+				
 					}
 					candidates.get(k).setIsDiscard(true);
 
 				}
 				if (ccCandidate.size() == 1)
-					continue;
-
+					break;
+				
 				candidates.get(j).setIsDiscard(true);
 				Candidate cc = new Candidate();
 				double score = candidates.get(j).computeScore();
+		
 				for (int t = 0; t < currNodeList.size(); t++)
 					cc.addNode(currNodeList.get(t));
 				for (int t = 1; t < ccCandidate.size(); t++) {
+					
 					score += ccCandidate.get(t).computeScore();
 					int index = ccCandidate.get(t).getNodeList().indexOf(node);
 					if (t == ccCandidate.size() - 1)
@@ -259,8 +269,10 @@ public class SummarizationModel {
 		}
 	}
 
+	
 	public ArrayList<Candidate> sortAndGetHighScoreSummaries() {
 		ArrayList<Candidate> summary = new ArrayList<Candidate>();
+		// can be improved
 		Collections.sort(candidates, new Comparator<Candidate>() {
 
 			public int compare(Candidate o1, Candidate o2) { // TODO Auto-generated method stub
