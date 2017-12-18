@@ -1,12 +1,7 @@
 package l3s.tts.runner;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
 import l3s.tts.configure.Configure;
 import l3s.tts.summary.IncrementalModel;
-
-import l3s.tts.utils.Tweet;
 import l3s.tts.utils.TweetStream;
 
 public class Tester {

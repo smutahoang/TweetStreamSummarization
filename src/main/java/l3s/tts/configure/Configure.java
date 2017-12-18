@@ -13,9 +13,12 @@ public class Configure {
 	public static int PERMISSABLE_GAP = 3;
 	public static int SAMPLE_NUMBER = 4;
 	public static int VSN_POS = 15; // pos thresold of a valid starting node
+	public static boolean STOP_AT_ENDINGTOKENS = true;
+	public static int NUMBER_OF_REMOVING_TWEETS = 2;
+	public static boolean SIMPLE_UPDATE = true;
 	public static String ENDTOKENS = "\\./\\.|!/!|\\?/\\?";
-	public static String[] VSN_TAGs = { "/jj", "/rb", "/prp$", "/vbg", "/nn", "/dt", "it/prp", "if/", "for/" };
-	public static String VSN_NAME = "^(its/|the/|when/|a/|an/|this/|the/|they/|it/|i/|we/|our/).*";
+	public static String VSN_TAGs = ".*(/jj|/rb|/prp$|/vbg|/nn|/dt).*";
+	public static String VSN_NAME = "^(its/|the/|when/|a/|an/|this/|the/|they/|it/|i/|we/|our/|if/|for/).*";
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
 
 	public static String VALID_CANDIDATE1 = ".*(/jj)*.*(/nn)+.*(/vb)+.*(/jj)+.*";
@@ -30,7 +33,7 @@ public class Configure {
 	public static int MIN_REDUNDANCY;
 	public static double DUPLICATE_PREFIX_THRESOLD = 0.4;
 	public static double DUPLICATE_SUFFIX_THRESOLD = 0.4;
-	public static double DUPLICATE_THRESOLD = 0.35;
+	public static double DUPLICATE_THRESOLD = 0.7;
 	public static boolean IS_COLLAPSE = true ;
 	public static long TIME_STEP_WIDTH = 10 * 60 * 1000; // Update every ten minutes
 	public static int TWEET_WINDOW = 1000;
