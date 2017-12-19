@@ -39,11 +39,11 @@ public class IncrementalModel extends SummarizationModel {
 
 			if (nOfTweets == Configure.TWEET_WINDOW) {
 				generateSummary();
-		
+
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
 				update();
-				
+
 			}
 
 		}
@@ -54,13 +54,13 @@ public class IncrementalModel extends SummarizationModel {
 	public void generateSummary() {
 		System.out.println("\n>>>>>>>>>>>>Find valid paths");
 		findingCandidates();
-		
+
 		System.out.println("\n>>>>>>>>>>>>Remove duplicates");
 		removeDuplicates();
-		
+
 		System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 		combineTweets();
-		
+
 		System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 		ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
 		for (Candidate can : summary)
@@ -74,43 +74,50 @@ public class IncrementalModel extends SummarizationModel {
 		if (Configure.SIMPLE_UPDATE)
 			generateSummary();
 		else {
-			// get the smallest position node in the list of candidates
+			// get the smallest position of a node in the list of candidates
+
 			int[] indexOfAffectedNode = new int[affectedNodes.size()];
-			// resample old candidates and find a new valid starting nodes
-			int size = candidates.size();
-			System.out.println("current candidates: "+candidates.size());
-			for (int k = 0; k < size; k++) {
+
+			// re-sample old candidates and find new valid starting nodes
+
+			System.out.println("current candidates: " + candidates.size());
+			for (int k = 0; k < candidates.size(); k++) {
 				Candidate can = candidates.get(k);
-				System.out.println(k);
-				if (can.getIsCollapse()) {
+				can.setIsDiscard(false);
+				if (can.getIsCollapsed()) {
 					candidates.remove(can);
-					size--;
 					k--;
 					continue;
 				}
-				// find the first affected node in a old candidate
+
 				int firstAffectedNode = -1;
 				for (int i = 0; i < affectedNodes.size(); i++) {
 					int index = can.getNodeList().indexOf(affectedNodes.get(i));
-
+					// find the first affected node in an old candidate
 					if (index != -1 && index < firstAffectedNode)
 						firstAffectedNode = index;
-					if (index != -1 && index + 1 < indexOfAffectedNode[i]) {
-						indexOfAffectedNode[i] = index;
+					// mark affected nodes that is a valid starting node in one of old candidates
+					if (index == 0) {
+						indexOfAffectedNode[i] = 1;
 					}
 				}
-				//
+				// sample a candidate again from the first affected node
 				if (firstAffectedNode != -1) {
 					Candidate newCan = new Candidate();
 					for (int i = 0; i <= firstAffectedNode; i++) {
 						newCan.addNode(can.getNodeList().get(i));
-						sampleAValidPath(newCan, can.getNodeList().get(firstAffectedNode));
+
 					}
+					sampleAValidPath(newCan, newCan.getNodeList().get(firstAffectedNode));
 					candidates.remove(can);
+					k--;
+
 				}
 			}
-			// sample for new valid starting nodes
+			
+			// sample candidates for new valid starting nodes
 			for (int i = 0; i < indexOfAffectedNode.length; i++) {
+				
 				if (indexOfAffectedNode[i] == 0 && affectedNodes.get(i).isVSN()) {
 					Candidate can = new Candidate();
 					can.addNode(affectedNodes.get(i));
@@ -134,24 +141,32 @@ public class IncrementalModel extends SummarizationModel {
 	 */
 
 	public void update() {
+		
 		removeOldestTweets();
+		
 		reGenerateSummary();
 	}
 
 	private void removeOldestTweets() {
+
 		for (int i = 0; i < Configure.NUMBER_OF_REMOVING_TWEETS; i++) {
 			Tweet tweet = recentTweets.removeFirst();
 			// remove nodes and edges
 			List<TaggedToken> tokens = tweet.getTaggedTokens(preprocessingUtils);
-			Node source = wordNodeMap.get(tokens.get(0).token + "/" + tokens.get(0).tag);
+			
 			int j = 0;
-			affectedNodes.add(source);
-			wordNodeMap.remove(tokens.get(0).token + "/" + tokens.get(0).tag);
-			while (j < tokens.size() - 1) {
+			
 
-				Node target = wordNodeMap.get(tokens.get(j + 1).token + "/" + tokens.get(j + 1).tag);
-				affectedNodes.add(target);
-				wordNodeMap.remove(tokens.get(j + 1).token + "/" + tokens.get(j + 1).tag);
+			Node source = wordNodeMap.remove(tokens.get(0).token + "/" + tokens.get(0).tag.toLowerCase());
+			if(source != null)
+				affectedNodes.add(source);
+			while (j < tokens.size() - 1) {
+				
+				Node target = wordNodeMap.remove(tokens.get(j + 1).token + "/" + tokens.get(j + 1).tag.toLowerCase());
+				if(target !=null)
+					affectedNodes.add(target);
+					
+				
 				DefaultWeightedEdge edge = graph.getEdge(source, target);
 				double weight = graph.getEdgeWeight(edge);
 				weight = weight - 1;

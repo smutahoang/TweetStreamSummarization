@@ -13,23 +13,23 @@ public class Candidate {
 	private List<Node> nodelList;
 	private String candidateString;
 	private boolean isDiscard;
-	private boolean isCollapse;
+	private boolean isCollapsed;
 	private double score;
 	public Candidate() {
 		// TODO Auto-generated constructor stub
 		nodelList = new ArrayList<Node>();
 		candidateString = "";
 		isDiscard = false;
-		isCollapse = true;
+		isCollapsed = true;
 	}
 	public void setIsDiscard(boolean isDiscard) {
 		this.isDiscard = isDiscard;
 	}
 	public void setIsCollapse(boolean isCollapse) {
-		this.isCollapse = isCollapse;
+		this.isCollapsed = isCollapse;
 	}
-	public boolean getIsCollapse() {
-		return isCollapse;
+	public boolean getIsCollapsed() {
+		return isCollapsed;
 	}
 	public boolean getIsDiscard() {
 		return isDiscard;
@@ -51,7 +51,7 @@ public class Candidate {
 	}
 	public double getScore() {
 		if(isDiscard) return 0;
-		if(isCollapse)
+		if(isCollapsed)
 			return score;
 		else
 			return computeScore();

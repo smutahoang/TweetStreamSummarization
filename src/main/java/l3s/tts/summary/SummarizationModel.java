@@ -67,6 +67,7 @@ public class SummarizationModel {
 				curNode.addNewTweetPosPair(index, i); // add a pair of sentence Id and position of word in the node
 				graph.addVertex(curNode); // add new node into graph
 				affectedNodes.add(curNode);
+				
 				wordNodeMap.put(tokens.get(i).token + "/" + tokens.get(i).tag.toLowerCase(), curNode);
 				isCurNodeNew = true;
 			}
@@ -220,7 +221,7 @@ public class SummarizationModel {
 				
 				for (int k = j + 1; k < numOfCandidates; k++) {
 					List<Node> kCanNodeList = candidates.get(k).getNodeList();
-					if (!kCanNodeList.contains(node) || !candidates.get(k).getIsCollapse()
+					if (!kCanNodeList.contains(node) || !candidates.get(k).getIsCollapsed()
 							|| candidates.get(k).getIsDiscard())
 						continue;
 
