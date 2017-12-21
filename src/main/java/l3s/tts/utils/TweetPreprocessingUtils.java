@@ -187,7 +187,7 @@ public class TweetPreprocessingUtils {
 	
 	private void removePunct(char[] chars) {
 		for (int i = 0; i < chars.length; i++) {
-			if (punctuations.contains(chars[i])) {
+			if (punctuations.contains(chars[i]) && !String.valueOf(chars[i]).matches(Configure.ENDTOKENS)) {// ignore removing end tokens
 				if (i == 0) {// first character
 					chars[i] = ' ';
 					continue;
@@ -359,13 +359,13 @@ public class TweetPreprocessingUtils {
 				i = j;
 			} else {
 				for (int p = i; p < j; p++) {
-					if (punctuations.contains(chars[p])) {
+					/*if (punctuations.contains(chars[p])) {
 						chars[p] = ' ';
-					} else {
+					} else {*/
 						chars[p] = Character.toLowerCase(chars[p]);
-					}
+					//}
 				}
-				removeSymbolInWord(chars, i, j);
+				//removeSymbolInWord(chars, i, j); // this will remove . at the end of a word
 				i = j;
 			}
 		}
@@ -376,13 +376,13 @@ public class TweetPreprocessingUtils {
 	
 	/**
 	 * @author Huyen Nguyen
-	 * @param text
-	 * @return
+	 * @param text: a string
+	 * @return the string that is tokenized and tagged
 	 */
 	public List<TaggedToken> getTaggedTokens(String text) {
-		String normalizedText = normalizeString(text);
-		text = normalizedText;
-		List<TaggedToken> taggedTokens = tagger.tokenizeAndTag(normalizedText);
+		//String normalizedText = normalizeString(text);
+		//text = normalizedText;
+		List<TaggedToken> taggedTokens = tagger.tokenizeAndTag(text);
 		
 		
 		return taggedTokens;
@@ -405,7 +405,7 @@ public class TweetPreprocessingUtils {
 
 		quoteSymbols = new HashSet<Character>();
 		quoteSymbols.add('\"');
-		quoteSymbols.add('\'');
+		//quoteSymbols.add('\'');
 		quoteSymbols.add('`');
 		quoteSymbols.add('\u2014');// long dash
 		quoteSymbols.add('\u0022');
@@ -458,9 +458,9 @@ public class TweetPreprocessingUtils {
 		punctuations.add(']');
 		punctuations.add('<');
 		punctuations.add('>');
-		punctuations.add(':');
-		punctuations.add(';');
-		punctuations.add(',');
+		//punctuations.add(':');
+		//punctuations.add(';');
+		//punctuations.add(',');
 		punctuations.add('.');
 		punctuations.add('?');
 		punctuations.add('!');
@@ -480,7 +480,8 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "[[WITNESS ACTION REQUIRED - 1 Million BTS Lockup to be a Witness https://t.co/BYaUPoe5sZ]]";
+		String message = "[[WITNESS ACTION REQUIRED - 1.  Million BTS Lockup to be a Witness https://t.co/BYaUPoe5sZ]]";
+		message = nlpUtils.normalizeString(message).trim();
 		System.out.printf("message = [[%s]]\n", message);
 		
 	}

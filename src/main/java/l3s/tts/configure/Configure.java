@@ -16,7 +16,7 @@ public class Configure {
 	public static boolean STOP_AT_ENDINGTOKENS = true;
 	public static int NUMBER_OF_REMOVING_TWEETS = 2;
 	public static boolean SIMPLE_UPDATE = false;
-	public static String ENDTOKENS = "\\./\\.|!/!|\\?/\\?";
+	public static String ENDTOKENS = "\\?|(\\.){1,4}|(\\!){1,4}";
 	public static String VSN_TAGs = ".*(/jj|/rb|/prp$|/vbg|/nn|/dt).*";
 	public static String VSN_NAME = "^(its/|the/|when/|a/|an/|this/|the/|they/|it/|i/|we/|our/|if/|for/).*";
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";

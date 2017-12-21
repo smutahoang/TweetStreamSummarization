@@ -53,13 +53,18 @@ public class TweetStream {
 				if (line == null) {
 					buff.close();
 					currentFile++;
+		
 					if (currentFile == fileList.length)
 						return null;
-					openFile(fileList[currentFile + 1]);
+					else {
+						openFile(fileList[currentFile]);
+						line = buff.readLine();
+						continue;
+					}
 				}
 
 				String[] text = line.split("\t");
-				String tweetId = text[0];
+				//String tweetId = text[0];
 				String userId = text[3];
 				long createdAt = Long.parseLong(text[2]);
 				String content = text[4];
@@ -68,7 +73,7 @@ public class TweetStream {
 					line = buff.readLine();
 					continue;
 				}
-				tweet = new Tweet(tweetId, content, userId, createdAt);
+				tweet = new Tweet(content, userId, createdAt);
 				return tweet;
 			}
 		} catch (Exception e) {

@@ -25,6 +25,8 @@ public class AliasSample {
 		}
 		return probabilities;
 	}
+	
+	
 	public void buildBarChart(double[] weights) {
 		prob = new double[weights.length];
 		alias = new int[weights.length];
@@ -84,7 +86,7 @@ public class AliasSample {
 		AliasSample aliasSample = new AliasSample(new Random());
 		double[] weight = {0.4, 0.15, 0.1, 0.35};
 		aliasSample.buildBarChart(weight);
-		int[] alias = aliasSample.getAlias();
+		//int[] alias = aliasSample.getAlias();
 		/*for(int i = 0; i<alias.length; i++)
 			System.out.print(alias[i]+"\t");
 		System.out.println();

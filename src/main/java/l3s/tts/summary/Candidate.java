@@ -63,24 +63,24 @@ public class Candidate {
 	public double computeScore() {
 		double score = 0;
 		if(nodelList.size() == 0) return 0;
-		List<int[]> overlap = nodelList.get(0).getSenPosPairs();
+		List<int[]> overlap = nodelList.get(0).getTweetPosPairs();
 
 		switch (Configure.SCORING_FUNCTION) {
 		case GAIN_REDUNDANCY_ONLY:
 			for (int i = 1; i < nodelList.size(); i++) {
-				overlap = getOverlapIntersection(overlap, nodelList.get(i).getSenPosPairs());
+				overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
 				score = score + (double) overlap.size();
 			}
 			break;
 		case GAIN_WEIGHTED_REDUNDANCY_BY_LEVEL:
 			for (int i = 1; i < nodelList.size(); i++) {
-				overlap = getOverlapIntersection(overlap, nodelList.get(i).getSenPosPairs());
+				overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
 				score = score + (double) (overlap.size() * (i + 1));
 			}
 			break;
 		case GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL:
 			for (int i = 1; i < nodelList.size(); i++) {
-				overlap = getOverlapIntersection(overlap, nodelList.get(i).getSenPosPairs());
+				overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
 				score = score + (double) overlap.size() * Math.log(i + 1);
 			}
 			break;
