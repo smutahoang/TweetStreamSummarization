@@ -32,6 +32,7 @@ public class IncrementalModel extends SummarizationModel {
 	public void run() {
 		Tweet tweet = null;
 		int nOfTweets = 0;
+		
 		while ((tweet = stream.getTweet()) != null) {
 			if (tweet.isReTweet())
 				continue; // ignore retweets
@@ -45,31 +46,43 @@ public class IncrementalModel extends SummarizationModel {
 			
 			if (nOfTweets == Configure.TWEET_WINDOW) {
 				//printGraph();
-				generateSummary();
 
+				generateSummary();
+			
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
 				update();
-
+				
 			}
-
+			
 		}
 		// generateSummary();
 
 	}
 
 	public void generateSummary() {
+		long time = System.currentTimeMillis();
 		System.out.println("\n>>>>>>>>>>>>Find valid paths");
 		findingCandidates();
-
+		long time1 = System.currentTimeMillis();
+		System.out.printf("Time for finding candidates: %d", (time1 - time) );
+		/*System.out.printf("Set of candidates before removing:\n");
+		for(int i = 0; i<candidates.size(); i++) {
+			System.out.printf("%d. %s\n", i, candidates.get(i));
+		}*/
 		System.out.println("\n>>>>>>>>>>>>Remove duplicates");
 		removeDuplicates();
-
+		/*System.out.printf("Set of candidates after removing:\n");
+		for(int i = 0; i<candidates.size(); i++) {
+			if(!candidates.get(i).getIsDiscard())
+				System.out.printf("%d. %s\n", i, candidates.get(i));
+		}*/
 		System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 		combineTweets();
 
 		System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 		ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
+
 		for (Candidate can : summary)
 			System.out.println(can);
 		System.out.println("\nNumber of sentences in the summary: " + summary.size());
@@ -83,7 +96,7 @@ public class IncrementalModel extends SummarizationModel {
 		else {
 			// get the smallest position of a node in the list of candidates
 
-			
+
 			HashSet<Node> existedValidStartingNodes = new HashSet<Node>();
 			
 			// re-sample old candidates and find new valid starting nodes
@@ -124,6 +137,7 @@ public class IncrementalModel extends SummarizationModel {
 			}
 			
 			
+		
 			System.out.println("\n>>>>>>>>>>>>Remove duplicates");
 			removeDuplicates();
 
@@ -132,6 +146,7 @@ public class IncrementalModel extends SummarizationModel {
 
 			System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 			ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
+
 			for (Candidate can : summary)
 				System.out.println(can);
 			System.out.println("\n\nNumber of sentences in the summary: " + summary.size());
@@ -147,9 +162,13 @@ public class IncrementalModel extends SummarizationModel {
 
 	public void update() {
 		System.out.println(">>>>>>>>>>>>>Removing oldest tweets");
+		
 		removeOldestTweets();
+
 		System.out.println(">>>>>>>>>>>>>Re-generating");
+		
 		reGenerateSummary();
+
 	}
 
 	private void removeOldestTweets() {

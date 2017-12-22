@@ -123,7 +123,7 @@ public class SummarizationModel {
 			if (!startNode.isVSN()) {
 				continue;
 			}
-			
+			//System.out.printf("--> VSN: %s\n", startNode);
 			
 			int i = 0;
 			//double[] weights;
@@ -133,7 +133,7 @@ public class SummarizationModel {
 				can.addNode(startNode);
 			
 				sampleAValidPath(can, startNode);
-				
+				//System.out.printf("Candidates: %s\n", can.toString());
 				i++;
 
 			}

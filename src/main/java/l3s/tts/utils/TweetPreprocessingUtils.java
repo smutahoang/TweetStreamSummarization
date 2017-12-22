@@ -187,7 +187,7 @@ public class TweetPreprocessingUtils {
 	
 	private void removePunct(char[] chars) {
 		for (int i = 0; i < chars.length; i++) {
-			if (punctuations.contains(chars[i]) && !String.valueOf(chars[i]).matches(Configure.ENDTOKENS)) {// ignore removing end tokens
+			if (punctuations.contains(chars[i]) && !String.valueOf(chars[i]).matches(Configure.ENDTOKENS)) {// ignore removing ending tokens
 				if (i == 0) {// first character
 					chars[i] = ' ';
 					continue;
@@ -332,6 +332,7 @@ public class TweetPreprocessingUtils {
 		// System.out.printf("After remove quotation:\t");
 		// ptScreen(chars);
 
+		// only remove punctrutions 
 		removePunct(chars);
 		// System.out.printf("After remove punctuations and tab:\t");
 		// ptScreen(chars);
