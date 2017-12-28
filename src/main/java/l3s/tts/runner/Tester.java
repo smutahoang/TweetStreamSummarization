@@ -17,7 +17,7 @@ public class Tester {
 		model.run();
 		System.out.println("done");
 		long endTime = System.currentTimeMillis();
-		System.out.printf("%s: %dms", "Running time", endTime - startTime);
+		System.out.printf("%s: %dms\n", "Running time", endTime - startTime);
 	}
 
 	

@@ -481,9 +481,13 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "[[WITNESS ACTION REQUIRED - 1.  Million BTS Lockup to be a Witness https://t.co/BYaUPoe5sZ]]";
+		String message = "democracy a bad . ain't gonna stop talking about a true asian guy fawkes masks";
+		
 		message = nlpUtils.normalizeString(message).trim();
 		System.out.printf("message = [[%s]]\n", message);
-		
+		List<TaggedToken> taggedTokens = nlpUtils.getTaggedTokens(message);
+		for(int i = 0; i< taggedTokens.size(); i++) {
+			System.out.printf(taggedTokens.get(i).token +"/"+taggedTokens.get(i).tag+ " ");
+		}
 	}
 }

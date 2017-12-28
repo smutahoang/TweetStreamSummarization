@@ -34,6 +34,9 @@ public class Node {
 			weightsOfOutgoingNodes.remove(edge);
 		else weightsOfOutgoingNodes.put(edge, weight);
 		
+		
+	}
+	public void updateAliasSampler() {
 		ArrayList<Double> weights = new ArrayList<Double>(weightsOfOutgoingNodes.values());
 		double[] distribution = new double[weights.size()];
 		double sum = 0;
@@ -46,7 +49,6 @@ public class Node {
 		}
 		alias.buildBarChart(distribution);
 	}
-	
 	
 	
 	public DefaultWeightedEdge sampleOutgoingEdges() {

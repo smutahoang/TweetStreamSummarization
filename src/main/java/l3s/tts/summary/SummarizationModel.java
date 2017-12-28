@@ -25,9 +25,9 @@ public class SummarizationModel {
 	protected List<Candidate> candidates;
 	protected HashSet<Node> affectedNodesByAdding;
 	protected HashSet<Node> affectedNodesByRemoving;
-	
+
 	protected Random rand;
-	
+
 	public SummarizationModel() {
 		// TODO Auto-generated constructor stub
 		wordNodeMap = new HashMap<String, Node>();
@@ -60,14 +60,13 @@ public class SummarizationModel {
 			builder.append("/");
 			builder.append(tokens.get(i).tag.toLowerCase());
 			String nodeString = builder.toString();
-			
+
 			// if graph contained this node, add a new pair of tweetId - word position
 			if (wordNodeMap.containsKey(nodeString)) {
 				isCurNodeNew = false;
-				
+
 				curNode = wordNodeMap.get(nodeString);
 				curNode.addNewTweetPosPair(index, i);
-				
 
 			} else { // if graph doesnt contain this node
 				curNode = new Node(rand); // create a new node
@@ -75,8 +74,7 @@ public class SummarizationModel {
 
 				curNode.addNewTweetPosPair(index, i); // add a pair of sentence Id and position of word in the node
 				graph.addVertex(curNode); // add new node into graph
-				
-				
+
 				wordNodeMap.put(nodeString, curNode);
 				isCurNodeNew = true;
 			}
@@ -108,67 +106,70 @@ public class SummarizationModel {
 		}
 	}
 
-	
-
 	public void findingCandidates() {
-		
+
 		Set<Node> nodeList = graph.vertexSet();
 		Iterator<Node> iter = nodeList.iterator();
-		
+
 		// iterate all nodes in the graph
 		while (iter.hasNext()) {
 			Node startNode = iter.next();
-			// System.out.println(currentNode);
+
 			// find a valid starting node to keep going
 			if (!startNode.isVSN()) {
 				continue;
 			}
-			//System.out.printf("--> VSN: %s\n", startNode);
-			
+
 			int i = 0;
-			//double[] weights;
-			
+
 			while (i < Configure.SAMPLE_NUMBER) {// iterate to sample
 				Candidate can = new Candidate();
 				can.addNode(startNode);
-			
+
 				sampleAValidPath(can, startNode);
-				//System.out.printf("Candidates: %s\n", can.toString());
+				// System.out.printf("Candidates: %s\n", can.toString());
 				i++;
 
 			}
 		}
 	}
+
 	public void sampleAValidPath(Candidate can, Node startNode) {
 
 		ArrayList<DefaultWeightedEdge> outgoingEdges = new ArrayList<DefaultWeightedEdge>(
 				graph.outgoingEdgesOf(startNode));
-		
+
 		Node currentNode = startNode;
 		while (true) { // find the next node in the path until reaching to the end tokens
-			
+
 			if (outgoingEdges.size() == 0)
 				return;
 			DefaultWeightedEdge nextEdge = currentNode.sampleOutgoingEdges();
 			Node nextNode = graph.getEdgeTarget(nextEdge);
 			String nameOfNextNode = nextNode.getNodeName().substring(0, nextNode.getNodeName().indexOf("/"));
-			if (graph.outgoingEdgesOf(nextNode).size() == 0||(nameOfNextNode.matches(Configure.ENDTOKENS) && Configure.STOP_AT_ENDINGTOKENS)) {
+			if (graph.outgoingEdgesOf(nextNode).size() == 0 || (nameOfNextNode.matches(Configure.ENDTOKENS))) {// &&
+																												// Configure.STOP_AT_ENDINGTOKENS))
+																												// {
 				can.addNode(nextNode);
 				if (can.isValidCandidate()) {
+					can.computeScore();
 					candidates.add(can);
-					//System.out.println(can);
+
+					// System.out.println(can);
 					break;
 				}
-				
-			} else
+
+			} else {
 				can.addNode(nextNode);
-			
+			}
+
 			outgoingEdges = new ArrayList<DefaultWeightedEdge>(graph.outgoingEdgesOf(nextNode));
 			currentNode = nextNode;
 		}
 	}
 
 	public void removeDuplicates() {
+		int count = 0;
 		for (int i = 0; i < candidates.size(); i++) {
 			if (candidates.get(i).getIsDiscard())
 				continue;
@@ -178,15 +179,31 @@ public class SummarizationModel {
 				if (candidates.get(i).computeJaccardScore(candidates.get(j)) > Configure.DUPLICATE_THRESOLD) {
 					if (candidates.get(i).getScore() > candidates.get(j).getScore()) {
 						candidates.get(j).setIsDiscard(true);
-						//System.out.println("--> remove: "+ candidates.get(j));
-						
+						count++;
+						// System.out.println("--> remove: "+ candidates.get(j));
+
 					} else {
 						candidates.get(i).setIsDiscard(true);
-						//System.out.println("--> remove: " + candidates.get(i));
+						count++;
+						// System.out.println("--> remove: " + candidates.get(i));
 						break;
 					}
 				}
 			}
+		}
+		System.out.printf("-------------------->number of removed candidates: %d\n", count);
+	}
+
+	public void buildAliasSampler() {
+		Iterator<Node> iter = affectedNodesByAdding.iterator();
+		while (iter.hasNext()) {
+			Node node = iter.next();
+			node.updateAliasSampler();
+		}
+		iter = affectedNodesByRemoving.iterator();
+		while (iter.hasNext()) {
+			Node node = iter.next();
+			node.updateAliasSampler();
 		}
 	}
 
@@ -230,40 +247,46 @@ public class SummarizationModel {
 
 				if (!node.isCollapse() || i == currNodeList.size() - 1)
 					continue;
-				 // if this sentence contain a collapsible node, we will find a way to combine aspects of prefixes
+				// if this sentence contain a collapsible node, we will find a way to combine
+				// aspects of prefixes
 				ccCandidate.add(candidates.get(j));
-				
+
 				for (int k = j + 1; k < numOfCandidates; k++) {
 					List<Node> kCanNodeList = candidates.get(k).getNodeList();
-					if (!kCanNodeList.contains(node) || !candidates.get(k).getIsCollapsed()
+					if (!kCanNodeList.contains(node) || candidates.get(k).getIsCollapsed()
 							|| candidates.get(k).getIsDiscard())
 						continue;
 
 					if (candidates.get(k).getNodeList().indexOf(node) == candidates.get(k).getNodeList().size())
 						continue;
 					double prefixOverlap = candidates.get(j).computeJaccardScore(candidates.get(k), node, 0);
-					
-			
-					if (prefixOverlap >= Configure.DUPLICATE_PREFIX_THRESOLD
-							&& isCombined(ccCandidate, candidates.get(k), node)) {
-						ccCandidate.add(candidates.get(k));
-				
+
+					/*
+					 * if (prefixOverlap >= Configure.DUPLICATE_PREFIX_THRESOLD &&
+					 * isCombined(ccCandidate, candidates.get(k), node)) {
+					 * ccCandidate.add(candidates.get(k)); candidates.get(k).setIsDiscard(true); }
+					 */
+
+					if (prefixOverlap >= Configure.DUPLICATE_PREFIX_THRESOLD) {
+						if (isCombined(ccCandidate, candidates.get(k), node)) {
+							ccCandidate.add(candidates.get(k));
+						}
+						candidates.get(k).setIsDiscard(true);
 					}
-					candidates.get(k).setIsDiscard(true);
 
 				}
 				if (ccCandidate.size() == 1)
 					break;
-				
+
 				candidates.get(j).setIsDiscard(true);
 				Candidate cc = new Candidate();
-				double score = candidates.get(j).computeScore();
-		
+				double score = candidates.get(j).getScore();
+
 				for (int t = 0; t < currNodeList.size(); t++)
 					cc.addNode(currNodeList.get(t));
 				for (int t = 1; t < ccCandidate.size(); t++) {
-					
-					score += ccCandidate.get(t).computeScore();
+
+					score += ccCandidate.get(t).getScore();
 					int index = ccCandidate.get(t).getNodeList().indexOf(node);
 					if (t == ccCandidate.size() - 1)
 						cc.addCordinatingConjunction(" ----- and---- ");
@@ -284,7 +307,6 @@ public class SummarizationModel {
 		}
 	}
 
-	
 	public ArrayList<Candidate> sortAndGetHighScoreSummaries() {
 		ArrayList<Candidate> summary = new ArrayList<Candidate>();
 		// can be improved
@@ -304,15 +326,26 @@ public class SummarizationModel {
 
 		});
 		int count = 0, i = 0;
+		// get Max_Summaries candidates
 		while (count < Configure.MAX_SUMMARIES && i < candidates.size()) {
 			if (!candidates.get(i).getIsDiscard()) {
-				summary.add(candidates.get(i));
-				count++;
+				int j;
+				//ignore a candidate if  there existed a similar candidate in the chosen summary
+				for (j = 0; j < summary.size(); j++) {
+					if (candidates.get(i).computeJaccardScore(summary.get(j)) > Configure.DUPLICATE_THRESOLD) {
+						i++;
+						break;
+					}
+				}
+				if (j == summary.size()) {
+					summary.add(candidates.get(i));
+					count++;
+				}
 			}
 			i++;
-			if(count == Configure.MAX_SUMMARIES)
+			if (count == Configure.MAX_SUMMARIES)
 				break;
-			
+
 		}
 		return summary;
 	}
@@ -346,5 +379,5 @@ public class SummarizationModel {
 		}
 
 	}
-	
+
 }

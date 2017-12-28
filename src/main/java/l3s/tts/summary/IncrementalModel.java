@@ -32,56 +32,63 @@ public class IncrementalModel extends SummarizationModel {
 	public void run() {
 		Tweet tweet = null;
 		int nOfTweets = 0;
-		
+		long startTime = System.currentTimeMillis();
+		long endTime;
 		while ((tweet = stream.getTweet()) != null) {
 			if (tweet.isReTweet())
 				continue; // ignore retweets
-			// System.out.println("Tweet: " + tweet.getText());
+
 			tweet.getTaggedTokens(preprocessingUtils);
-			// System.out.println("Tweet: " + tweet.getText()+"\n");
+
 			recentTweets.add(tweet);
 			tweet.setTweetId(nOfTweets);
 			addNewTweet(tweet, nOfTweets);
 			nOfTweets++;
-			
-			if (nOfTweets == Configure.TWEET_WINDOW) {
-				//printGraph();
 
+			if (nOfTweets == Configure.TWEET_WINDOW) {
+				endTime = System.currentTimeMillis();
+				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				generateSummary();
-			
+				startTime = System.currentTimeMillis();
+
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
+				endTime = System.currentTimeMillis();
+				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				update();
-				
+				startTime = System.currentTimeMillis();
 			}
-			
+
 		}
-		// generateSummary();
 
 	}
 
 	public void generateSummary() {
-		long time = System.currentTimeMillis();
+		long time1, time2;
+		time1 = System.currentTimeMillis();
+		buildAliasSampler();
+		time2 = System.currentTimeMillis();
+		System.out.printf("--------->Time for building alias: %d\n", (time2 - time1));
+
 		System.out.println("\n>>>>>>>>>>>>Find valid paths");
 		findingCandidates();
-		long time1 = System.currentTimeMillis();
-		System.out.printf("Time for finding candidates: %d", (time1 - time) );
-		/*System.out.printf("Set of candidates before removing:\n");
-		for(int i = 0; i<candidates.size(); i++) {
-			System.out.printf("%d. %s\n", i, candidates.get(i));
-		}*/
+		time1 = System.currentTimeMillis();
+		System.out.printf("--------->Time for finding candidates: %d\n", (time1 - time2));
 		System.out.println("\n>>>>>>>>>>>>Remove duplicates");
-		removeDuplicates();
-		/*System.out.printf("Set of candidates after removing:\n");
-		for(int i = 0; i<candidates.size(); i++) {
-			if(!candidates.get(i).getIsDiscard())
-				System.out.printf("%d. %s\n", i, candidates.get(i));
-		}*/
+
+//		removeDuplicates();
+//		time2 = System.currentTimeMillis();
+//		System.out.printf("--------->Time for removing candidates: %d\n", (time2 - time1));
+
 		System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 		combineTweets();
+		time1 = System.currentTimeMillis();
+		System.out.printf("--------->Time for combining candidates: %d\n", (time1 - time2));
 
 		System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 		ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
+		time2 = System.currentTimeMillis();
+		System.out.printf("--------->Time for sorting and getting high score candidates: %d\n", (time2 - time1));
 
 		for (Candidate can : summary)
 			System.out.println(can);
@@ -91,61 +98,95 @@ public class IncrementalModel extends SummarizationModel {
 	}
 
 	public void reGenerateSummary() {
-		if (Configure.SIMPLE_UPDATE)
+
+		long time1, time2;
+		time1 = System.currentTimeMillis();
+
+		if (Configure.SIMPLE_UPDATE) {
 			generateSummary();
-		else {
+		} else {
 			// get the smallest position of a node in the list of candidates
-
-
 			HashSet<Node> existedValidStartingNodes = new HashSet<Node>();
-			
+			int removedCollapsedCan = 0;
+			int removedCanInReOAdd = 0;
+			int nOfOldCandidates = candidates.size();
 			// re-sample old candidates and find new valid starting nodes
-			for(int i =0; i<candidates.size(); i++) {
+			for (int i = 0; i < nOfOldCandidates; i++) {
 				Candidate can = candidates.get(i);
 				can.setIsDiscard(false);
 				if (can.getIsCollapsed()) {
+					
 					candidates.remove(can);
+					removedCollapsedCan++;
 					i--;
+					nOfOldCandidates--;
 					continue;
 				}
-				List<Node> nodesOfCandidate =can.getNodeList();
-				for(int j = 0; j<nodesOfCandidate.size(); j++) {
-					if(affectedNodesByAdding.contains(nodesOfCandidate.get(j)) || affectedNodesByRemoving.contains(nodesOfCandidate.get(j))) {
-						if(j == 0)
+				List<Node> nodesOfCandidate = can.getNodeList();
+				for (int j = 0; j < nodesOfCandidate.size(); j++) {
+					if (affectedNodesByAdding.contains(nodesOfCandidate.get(j))
+							|| affectedNodesByRemoving.contains(nodesOfCandidate.get(j))) {
+						if (j == 0)
 							existedValidStartingNodes.add(nodesOfCandidate.get(j));
-						Candidate newCan = new Candidate();
-						for(int k = 0; k<=j; k++) {
-							newCan.addNode(can.getNodeList().get(k));
-						}
-						sampleAValidPath(newCan, nodesOfCandidate.get(j));
+
+						//int loop = 0;
+						//while (loop < Configure.SAMPLE_NUMBER) {
+							Candidate newCan = new Candidate();
+							for (int k = 0; k <= j; k++) {
+								newCan.addNode(can.getNodeList().get(k));
+							}
+							sampleAValidPath(newCan, nodesOfCandidate.get(j));
+						//	loop++;
+						//}
+						
+						removedCanInReOAdd++;
 						candidates.remove(can);
 						i--;
-						break;	
+						nOfOldCandidates--;
+						break;
 					}
-					
+
 				}
+				
 			}
+			int newValidStartingNode = 0;
 			Iterator<Node> iter = affectedNodesByAdding.iterator();
-			while(iter.hasNext()) {
+			while (iter.hasNext()) {
 				Node node = iter.next();
-				if(!existedValidStartingNodes.contains(node)&& node.isVSN()) {
-					Candidate newCan = new Candidate();
-					newCan.addNode(node);
-					//System.out.println("Re-generating: "+newCan.toString());
-					sampleAValidPath(newCan, node);
+				if (!existedValidStartingNodes.contains(node) && node.isVSN()) {
+					int loop = 0;
+					newValidStartingNode++;
+					while (loop < Configure.SAMPLE_NUMBER) {
+						Candidate newCan = new Candidate();
+						newCan.addNode(node);
+						sampleAValidPath(newCan, node);
+						loop++;
+					}
 				}
 			}
-			
-			
-		
-			System.out.println("\n>>>>>>>>>>>>Remove duplicates");
-			removeDuplicates();
+			System.out.printf("+++++The total number of candidates: %d\n", candidates.size());
+			System.out.printf("+++++The number of collapsed candidates removed: %d\n", removedCollapsedCan);
+			System.out.printf("+++++The number of candidates in adding or removing list that is removed: %d\n",
+					removedCanInReOAdd);
+			System.out.printf("+++++The number of new valid starting nodes: %d\n", newValidStartingNode);
+
+			time2 = System.currentTimeMillis();
+			System.out.printf("--------->Time for resampling: %d\n", (time2 - time1));
+
+//			System.out.println("\n>>>>>>>>>>>>Remove duplicates");
+//			removeDuplicates();
+//			time1 = System.currentTimeMillis();
+//			System.out.printf("--------->Time for removing: %d\n", (time1 - time2));
 
 			System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 			combineTweets();
+			time2 = System.currentTimeMillis();
+			System.out.printf("--------->Time for combining: %d\n", (time2 - time1));
 
 			System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 			ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
+			time1 = System.currentTimeMillis();
+			System.out.printf("--------->Time for sorting and getting final candidates: %d\n", (time1 - time2));
 
 			for (Candidate can : summary)
 				System.out.println(can);
@@ -162,11 +203,11 @@ public class IncrementalModel extends SummarizationModel {
 
 	public void update() {
 		System.out.println(">>>>>>>>>>>>>Removing oldest tweets");
-		
-		removeOldestTweets();
 
+		removeOldestTweets();
+		buildAliasSampler();
 		System.out.println(">>>>>>>>>>>>>Re-generating");
-		
+
 		reGenerateSummary();
 
 	}
@@ -204,28 +245,28 @@ public class IncrementalModel extends SummarizationModel {
 				if (weight == 0) {
 					graph.removeEdge(edge);
 					source.setWeightOfOutgoingNodes(edge, 0);
-					//System.out.println("remove an outgoing node of:"+source);
+					// System.out.println("remove an outgoing node of:"+source);
 				} else {
 					graph.setEdgeWeight(edge, weight);
 					source.setWeightOfOutgoingNodes(edge, weight);
-					//System.out.println("remove an outgoing node of: "+ source);
+					// System.out.println("remove an outgoing node of: "+ source);
 				}
-				
+
 				// remove pairs of tweetId - position out of the information of the node\
-				
+
 				source.removeTweetPosPair(tweet.getTweetId(), j); // should re-factor this function
-				/*if(source.getTweetPosPairs().size() == 0) {
-					wordNodeMap.remove(nodeString);
-					graph.removeVertex(source);
-				}*/
+				/*
+				 * if(source.getTweetPosPairs().size() == 0) { wordNodeMap.remove(nodeString);
+				 * graph.removeVertex(source); }
+				 */
 				j++;
 				source = target;
 			}
 			target.removeTweetPosPair(tweet.getTweetId(), j); // should re-factor this function
-			/*if(target.getTweetPosPairs().size() == 0) {
-				wordNodeMap.remove(nodeString);
-				graph.removeVertex(target);
-			}*/
+			/*
+			 * if(target.getTweetPosPairs().size() == 0) { wordNodeMap.remove(nodeString);
+			 * graph.removeVertex(target); }
+			 */
 		}
 
 	}
