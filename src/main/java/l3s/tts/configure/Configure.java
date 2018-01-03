@@ -10,7 +10,7 @@ public class Configure {
 	public static String PROPERTIES_PATH;
 	public static String TAGGING_MODEL;
 	public static int MAX_SUMMARIES = 5;
-	public static int PERMISSABLE_GAP = 3;
+	public static int PERMISSABLE_GAP = 5;
 	public static int SAMPLE_NUMBER = 4;
 	public static int VSN_POS = 15; // pos thresold of a valid starting node
 	public static boolean STOP_AT_ENDINGTOKENS = true;
@@ -30,7 +30,8 @@ public class Configure {
 	public static String VALID_CANDIDATE7 = ".*(/to|/vbz|/in|/cc|wdt|/prp|/dt|/,)";
 	public static String OVERLAP_NODE = ".*(/vb[a-z]|/in)"; // a node is a collapsible node if it is a verb
 
-	public static int MIN_REDUNDANCY;
+	public static int MIN_REDUNDANCY = 2;
+	public static int P_MAX_SENT_LENGTH = 18;
 	public static double DUPLICATE_PREFIX_THRESOLD = 0.4;
 	public static double DUPLICATE_SUFFIX_THRESOLD = 0.4;
 	public static double DUPLICATE_THRESOLD = 0.3;

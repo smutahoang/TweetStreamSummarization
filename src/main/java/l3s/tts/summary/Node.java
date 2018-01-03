@@ -20,8 +20,11 @@ public class Node {
 	
 	public void removeTweetPosPair(int tweetId, int position) {
 		for(int i = 0; i<tweetPosPairs.size(); i++) {
-			if(tweetPosPairs.get(i)[0] == tweetId && tweetPosPairs.get(i)[1] == position)
+			if(tweetPosPairs.get(i)[0] == tweetId && tweetPosPairs.get(i)[1] == position) {
 				tweetPosPairs.remove(i);
+				sumPos = sumPos - position;
+				break;
+			}
 		}
 	}
 	
@@ -54,7 +57,9 @@ public class Node {
 	public DefaultWeightedEdge sampleOutgoingEdges() {
 		
 		ArrayList<DefaultWeightedEdge> edges = new ArrayList<DefaultWeightedEdge>(weightsOfOutgoingNodes.keySet());
-		return edges.get(alias.sample());
+		int i = alias.sample();
+		
+		return edges.get(i);
 		
 	}
 	
@@ -106,12 +111,13 @@ public class Node {
 	}
 	
 	public String toString() {
-		String s = nodeName +"{";
+		/*String s = nodeName+"{";
 		for (int i = 0; i<tweetPosPairs.size(); i++) {
 			s+="{"+ tweetPosPairs.get(i)[0]+", " + tweetPosPairs.get(i)[1] +"}";
 		}
 		s += "}";
-		return s;
+		return s;*/
+		return nodeName;
 	}
 	
 }

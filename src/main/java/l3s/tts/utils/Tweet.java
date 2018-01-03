@@ -10,6 +10,7 @@ public class Tweet {
 	private String userId;
 	private long createdAt;
 	private double weight;
+	private List<TaggedToken> taggedTokens;
 	
 	
 	public void setWeight(double weight) {
@@ -20,7 +21,9 @@ public class Tweet {
 		return weight;
 	}
 	
-	private List<TaggedToken> taggedTokens;
+	public List<TaggedToken> getTaggedTokens() {
+		return taggedTokens;
+	}
 	
 	public static String RETWEET = "RT @";
 	
@@ -62,7 +65,7 @@ public class Tweet {
 		System.out.printf("time = %d user = %s tweetId = %s text = %s\n", createdAt, userId, tweetId, text);
 	}
 	
-	public List<TaggedToken> getTaggedTokens(TweetPreprocessingUtils preprocessingUtils) {
+	public void tagTokens(TweetPreprocessingUtils preprocessingUtils) {
 		String normalizedText = preprocessingUtils.normalizeString(text);
 		text = normalizedText;
 		if(taggedTokens == null)
@@ -71,6 +74,6 @@ public class Tweet {
 			System.out.print(taggedTokens.get(i).token+"/"+taggedTokens.get(i).tag+" ");
 		}
 		System.out.println();*/
-		return taggedTokens;
+		//return taggedTokens;
 	}
 }

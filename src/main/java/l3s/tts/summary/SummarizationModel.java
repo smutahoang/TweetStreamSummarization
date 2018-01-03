@@ -3,6 +3,7 @@ package l3s.tts.summary;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -36,6 +37,7 @@ public class SummarizationModel {
 		affectedNodesByAdding = new HashSet<Node>();
 		affectedNodesByRemoving = new HashSet<Node>();
 		candidates = new ArrayList<Candidate>();
+
 		rand = new Random();
 	}
 
@@ -49,7 +51,7 @@ public class SummarizationModel {
 	 */
 	public void addNewTweet(Tweet tweet, int index) {
 		// iterate all tagged words in the tweet
-		List<TaggedToken> tokens = tweet.getTaggedTokens(preprocessingUtils);
+		List<TaggedToken> tokens = tweet.getTaggedTokens();
 		boolean isPrevNodeNew = true;
 		boolean isCurNodeNew = true;
 		Node preNode = null;
@@ -110,7 +112,7 @@ public class SummarizationModel {
 
 		Set<Node> nodeList = graph.vertexSet();
 		Iterator<Node> iter = nodeList.iterator();
-
+		int vsnCount = 0;
 		// iterate all nodes in the graph
 		while (iter.hasNext()) {
 			Node startNode = iter.next();
@@ -119,14 +121,22 @@ public class SummarizationModel {
 			if (!startNode.isVSN()) {
 				continue;
 			}
-
+			vsnCount++;
+			System.out.printf("--> %d. VSN: %s\n", vsnCount, startNode.getNodeName());//in the sentences: [", vsnCount, startNode.getNodeName());
+			/*for (int[] array : startNode.getTweetPosPairs()) {
+				System.out.printf("[%d %d]", array[0], array[1]);
+			}
+			System.out.printf("]\n");*/
 			int i = 0;
 
 			while (i < Configure.SAMPLE_NUMBER) {// iterate to sample
 				Candidate can = new Candidate();
 				can.addNode(startNode);
+				List<int[]> overlap = new ArrayList<int[]>();
+				overlap.addAll(startNode.getTweetPosPairs());
+				double score = 0;
 
-				sampleAValidPath(can, startNode);
+				sampleAValidPath(can, startNode, overlap, score);
 				// System.out.printf("Candidates: %s\n", can.toString());
 				i++;
 
@@ -134,7 +144,7 @@ public class SummarizationModel {
 		}
 	}
 
-	public void sampleAValidPath(Candidate can, Node startNode) {
+	public void sampleAValidPath(Candidate can, Node startNode, List<int[]> currentOverlap, double currentScore) {
 
 		ArrayList<DefaultWeightedEdge> outgoingEdges = new ArrayList<DefaultWeightedEdge>(
 				graph.outgoingEdgesOf(startNode));
@@ -145,27 +155,58 @@ public class SummarizationModel {
 			if (outgoingEdges.size() == 0)
 				return;
 			DefaultWeightedEdge nextEdge = currentNode.sampleOutgoingEdges();
+
+
 			Node nextNode = graph.getEdgeTarget(nextEdge);
 			String nameOfNextNode = nextNode.getNodeName().substring(0, nextNode.getNodeName().indexOf("/"));
-			if (graph.outgoingEdgesOf(nextNode).size() == 0 || (nameOfNextNode.matches(Configure.ENDTOKENS))) {// &&
-																												// Configure.STOP_AT_ENDINGTOKENS))
-																												// {
-				can.addNode(nextNode);
-				if (can.isValidCandidate()) {
-					can.computeScore();
-					candidates.add(can);
 
+			if (nameOfNextNode.matches(Configure.ENDTOKENS) && Configure.STOP_AT_ENDINGTOKENS) {
+				if (!nameOfNextNode.matches(Configure.ENDTOKENS)) {
+					can.addNode(nextNode); // we wont add end token at the end of a candidate/a valid path
+					currentOverlap = getOverlapIntersection(currentOverlap, nextNode.getTweetPosPairs());
+					currentScore = computeScore(currentScore, currentOverlap, can.getNodeList().size());
+				}
+
+				if (can.isValidCandidate()) {
+					can.computeAdjustScore(currentScore);
+					candidates.add(can);
+					System.out.printf(" + Valid: %s\n", can.getCan());
+					// System.out.println(can);
+					break;
+				} else {
+					System.out.printf(" + EndButInvalid: %s\n", can.getCan());
 					// System.out.println(can);
 					break;
 				}
 
-			} else {
+			} else if (graph.outgoingEdgesOf(nextNode).size() > 0) {
 				can.addNode(nextNode);
+				currentOverlap = getOverlapIntersection(currentOverlap, nextNode.getTweetPosPairs());
+				currentScore = computeScore(currentScore, currentOverlap, can.getNodeList().size());
 			}
-
+			if (!shouldContinue(currentOverlap, can.getNodeList().size())) {
+				System.out.println("-->Invalid: " + can);
+				break;
+			}
 			outgoingEdges = new ArrayList<DefaultWeightedEdge>(graph.outgoingEdgesOf(nextNode));
 			currentNode = nextNode;
 		}
+	}
+
+	public double computeScore(double currentScore, List<int[]> currentOverlap, int pathLength) {
+		double score = 0;
+		switch (Configure.SCORING_FUNCTION) {
+		case GAIN_REDUNDANCY_ONLY:
+			score = currentScore + currentOverlap.size();
+			break;
+		case GAIN_WEIGHTED_REDUNDANCY_BY_LEVEL:
+			score = currentScore + pathLength * currentOverlap.size();
+			break;
+		case GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL:
+			score = currentScore + (Math.log(pathLength) / Math.log(2)) * currentOverlap.size(); // log_2(pathLength)
+			break;
+		}
+		return score;
 	}
 
 	public void removeDuplicates() {
@@ -223,13 +264,45 @@ public class SummarizationModel {
 		return distribution;
 	}
 
-	public void printCandidates() {
-		for (int i = 0; i < candidates.size(); i++) {
-			if (!candidates.get(i).getIsDiscard())
-				System.out.println(candidates.get(i));
+	public List<int[]> getOverlapIntersection(List<int[]> left, List<int[]> right) {
+		List<int[]> result = new ArrayList<int[]>();
+		int pointer = 0;
+		int i = 0;
+		while (i < left.size()) {
+			int[] eleft = left.get(i);
+			if (pointer > right.size())
+				break;
+			int j = pointer;
+			while (j < right.size()) {
+				int[] eright = right.get(j);
+				if (eright[0] == eleft[0]) {
+					if (eright[1] > eleft[1] && Math.abs(eright[1] - eleft[1]) <= Configure.PERMISSABLE_GAP) {
+						result.add(eright);
+						pointer = j + 1;
+						break;
+					}
+					eright[1] = eleft[1];
+				} else if (eright[0] > eleft[0])
+					break;
+				++j;
+			}
+			++i;
 		}
+		return result;
 	}
 
+	public void printCandidates(Formatter format) {
+		for (int i = 0; i < candidates.size(); i++) {
+			format.format("%d. %s\n", i + 1, candidates.get(i));
+		}
+
+	}
+
+	public void printCandidates() {
+		for(int i = 0; i<candidates.size(); i++) {
+			System.out.printf("%d. %s\n", (i+1), candidates.get(i));
+		}
+	}
 	// compute score of a path and combine different paths
 
 	public void combineTweets() {
@@ -330,7 +403,7 @@ public class SummarizationModel {
 		while (count < Configure.MAX_SUMMARIES && i < candidates.size()) {
 			if (!candidates.get(i).getIsDiscard()) {
 				int j;
-				//ignore a candidate if  there existed a similar candidate in the chosen summary
+				// ignore a candidate if there existed a similar candidate in the chosen summary
 				for (j = 0; j < summary.size(); j++) {
 					if (candidates.get(i).computeJaccardScore(summary.get(j)) > Configure.DUPLICATE_THRESOLD) {
 						i++;
@@ -360,6 +433,17 @@ public class SummarizationModel {
 		return true;
 	}
 
+	public boolean shouldContinue(List<int[]> currentOverlap, int pathLength) {
+		if (pathLength >= Configure.P_MAX_SENT_LENGTH) {
+			return false;
+		}
+
+		if (currentOverlap.size() < Configure.MIN_REDUNDANCY) {// && !this.isEndToken(x)) {
+			return false;
+		}
+		return true;
+	}
+
 	public void printGraph() {
 		Set<Node> vertexSet = graph.vertexSet();
 		Iterator<Node> iter = vertexSet.iterator();
@@ -373,7 +457,8 @@ public class SummarizationModel {
 				if (targetNode.getNodeName().equals(n.getNodeName()))
 					continue;
 				double weight = graph.getEdgeWeight(edge);
-				System.out.printf("%d. %s --> %s: %.1f\n", i, sourceNode, targetNode, weight);
+				System.out.printf("%d. %s --> %s: %.1f\n", i, sourceNode.getNodeName(), targetNode.getNodeName(),
+						weight);
 				i++;
 			}
 		}

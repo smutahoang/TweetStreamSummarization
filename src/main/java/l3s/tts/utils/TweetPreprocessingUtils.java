@@ -319,8 +319,12 @@ public class TweetPreprocessingUtils {
 	}
 	
 	public String normalizeString(String text) {
+		text = text.trim();
+		String end = text.substring(text.length()-1);
+		if(!end.matches(Configure.ENDTOKENS))
+			text = text.concat(".");
 		char[] chars = text.trim().toCharArray();
-
+		
 		removeNewLineAndTabCharacter(chars);
 		removeOriginalAuthors(chars);
 
@@ -332,7 +336,7 @@ public class TweetPreprocessingUtils {
 		// System.out.printf("After remove quotation:\t");
 		// ptScreen(chars);
 
-		// only remove punctrutions 
+		// only remove punctuations that are different from end tokens
 		removePunct(chars);
 		// System.out.printf("After remove punctuations and tab:\t");
 		// ptScreen(chars);

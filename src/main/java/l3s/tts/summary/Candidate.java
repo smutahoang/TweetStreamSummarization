@@ -24,6 +24,9 @@ public class Candidate {
 		isCollapsed = false;
 		score = 0;
 	}
+	public void setCandidateString(String candidateString) {
+		this.candidateString = candidateString;
+	}
 
 	public void setIsDiscard(boolean isDiscard) {
 		this.isDiscard = isDiscard;
@@ -95,6 +98,13 @@ public class Candidate {
 			}
 		}
 
+	}
+	
+	
+	public void computeAdjustScore(double score) {
+		if (nodelList.size() != 0) {
+			score = score/nodelList.size();
+		}
 	}
 
 	/**
@@ -217,5 +227,8 @@ public class Candidate {
 		result = result.replaceAll(SPACE, " ");
 
 		return result;
+	}
+	public String getCan() {
+		return candidateString;
 	}
 }

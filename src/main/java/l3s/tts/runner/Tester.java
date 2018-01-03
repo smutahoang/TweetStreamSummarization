@@ -9,7 +9,7 @@ public class Tester {
 		new Configure();
 		long startTime = System.currentTimeMillis();
 		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
-		String outputDir = Configure.WORKING_DIRECTORY + "\\output";
+		String outputDir = Configure.WORKING_DIRECTORY + "\\output\\candidates.txt";
 		
 		TweetStream stream = new TweetStream(inputDir);
 		IncrementalModel model = new IncrementalModel(stream, outputDir);

@@ -77,22 +77,26 @@ public class AliasSample {
 		int column = rand.nextInt(alias.length);
 		//System.out.print(column);
 		double x = rand.nextDouble();
-		if(alias.length * prob[column] < x)
+		if(alias.length * prob[column] < x) {
+			///System.out.print(prob[alias[column]] +" ");
 			return alias[column];
-		else
+		}
+		else {
+			//System.out.print(prob[column] +" ");
 			return column;
+		}
 	}
 	public static void main(String[] args) {
 		AliasSample aliasSample = new AliasSample(new Random());
 		double[] weight = {0.4, 0.15, 0.1, 0.35};
 		aliasSample.buildBarChart(weight);
-		//int[] alias = aliasSample.getAlias();
-		/*for(int i = 0; i<alias.length; i++)
+		int[] alias = aliasSample.getAlias();
+		for(int i = 0; i<alias.length; i++)
 			System.out.print(alias[i]+"\t");
 		System.out.println();
 		double[] prob = aliasSample.getProb();
 		for(int i = 0; i<prob.length; i++)
-			System.out.print(prob[i]+"\t");*/
+			System.out.print(prob[i]+"\t");
 		for(int i = 0; i<100; i++) {
 			System.out.println(aliasSample.sample());
 		}

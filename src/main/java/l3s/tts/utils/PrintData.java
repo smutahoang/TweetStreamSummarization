@@ -22,7 +22,7 @@ public class PrintData {
 		return result;
 
 	}
-
+	// get all tweets contain nodes
 	public static HashSet<Tweet> getTweetsContainingNode(List<Tweet> tweets, Node node) {
 		HashSet<Tweet> result = new HashSet<Tweet>();
 		String tagNode = node.getNodeName().substring(node.getNodeName().indexOf("/")+1);
