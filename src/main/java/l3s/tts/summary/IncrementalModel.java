@@ -163,11 +163,11 @@ public class IncrementalModel extends SummarizationModel {
 						double currentScore = 0;
 						currentOverlap.addAll(nodesOfCandidate.get(0).getTweetPosPairs());
 						newCan.addNode(nodesOfCandidate.get(0));
-						System.out.printf("--> VSN: %s in the sentences: [", nodesOfCandidate.get(0).getNodeName());
-						for (int[] array : nodesOfCandidate.get(0).getTweetPosPairs()) {
+						System.out.printf("--> VSN: %s", nodesOfCandidate.get(0).getNodeName()); //in the sentences: [", nodesOfCandidate.get(0).getNodeName());
+						/*for (int[] array : nodesOfCandidate.get(0).getTweetPosPairs()) {
 							System.out.printf("[%d %d]", array[0], array[1]);
 						}
-						System.out.printf("]\n");
+						System.out.printf("]\n");*/
 						for (int k = 1; k <= j; k++) {
 							Node node = nodesOfCandidate.get(k);
 							newCan.addNode(node);

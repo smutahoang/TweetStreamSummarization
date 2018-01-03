@@ -159,7 +159,7 @@ public class SummarizationModel {
 
 			Node nextNode = graph.getEdgeTarget(nextEdge);
 			String nameOfNextNode = nextNode.getNodeName().substring(0, nextNode.getNodeName().indexOf("/"));
-
+			
 			if (nameOfNextNode.matches(Configure.ENDTOKENS) && Configure.STOP_AT_ENDINGTOKENS) {
 				if (!nameOfNextNode.matches(Configure.ENDTOKENS)) {
 					can.addNode(nextNode); // we wont add end token at the end of a candidate/a valid path

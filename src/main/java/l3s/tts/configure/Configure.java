@@ -37,7 +37,7 @@ public class Configure {
 	public static double DUPLICATE_THRESOLD = 0.3;
 	public static boolean IS_COLLAPSE = true ;
 //	public static long TIME_STEP_WIDTH = 10 * 60 * 1000; // Update every ten minutes
-	public static int TWEET_WINDOW = 5;
+	public static int TWEET_WINDOW = 1000;
 
 	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
 
