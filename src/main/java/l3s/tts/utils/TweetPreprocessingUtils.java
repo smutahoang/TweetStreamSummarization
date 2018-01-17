@@ -1,5 +1,7 @@
 package l3s.tts.utils;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -22,12 +24,114 @@ public class TweetPreprocessingUtils {
 	private HashSet<Character> quoteSymbols;
 	private HashSet<Character> validPrefixSymbols; 
 	private HashSet<Character> validSuffixSymbols; 
-	//private HashSet<String> stopWords; // need?
 	private Tagger tagger;
 	
 	private UrlValidator urlValidator;
 	
+	private HashSet<String> stopWords;
 
+	
+	//public HashSet<String> getStopWords()
+	public HashSet<String> getStopWords() {
+		try {
+			stopWords = new HashSet<String>();
+			BufferedReader br;
+			String line = null;
+
+			br = new BufferedReader(
+					new FileReader(String.format("%s/common-english-adverbs.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(
+					new FileReader(String.format("%s/common-english-prep-conj.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(
+					new FileReader(String.format("%s/common-english-words.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(
+					new FileReader(String.format("%s/smart-common-words.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(new FileReader(String.format("%s/mysql-stopwords.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(new FileReader(String.format("%s/twitter-slang.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			br = new BufferedReader(new FileReader(String.format("%s/shorthen.txt", Configure.STOPWORD_PATH)));
+			line = null;
+			while ((line = br.readLine()) != null) {
+				String[] tokens = line.toLowerCase().split(",");
+				for (int i = 0; i < tokens.length; i++) {
+					stopWords.add(tokens[i]);
+				}
+			}
+			br.close();
+
+			addMoreStopWords();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		return stopWords;
+	}
+	
+	/***
+	 * more stop-words found while conducting experiments
+	 */
+	private void addMoreStopWords() {
+		// words due to truncated tweets
+		stopWords.add("//t");
+		stopWords.add("http");
+		stopWords.add("https");
+	}
+	
+	
 	
 	public TweetPreprocessingUtils() {
 		// TODO Auto-generated constructor stub
@@ -410,7 +514,7 @@ public class TweetPreprocessingUtils {
 
 		quoteSymbols = new HashSet<Character>();
 		quoteSymbols.add('\"');
-		//quoteSymbols.add('\'');
+		quoteSymbols.add('\'');
 		quoteSymbols.add('`');
 		quoteSymbols.add('\u2014');// long dash
 		quoteSymbols.add('\u0022');
@@ -465,7 +569,7 @@ public class TweetPreprocessingUtils {
 		punctuations.add('>');
 		//punctuations.add(':');
 		//punctuations.add(';');
-		//punctuations.add(',');
+		punctuations.add(',');
 		punctuations.add('.');
 		punctuations.add('?');
 		punctuations.add('!');
@@ -485,7 +589,7 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "democracy a bad . ain't gonna stop talking about a true asian guy fawkes masks";
+		String message = "four by four on westminster bridge ";
 		
 		message = nlpUtils.normalizeString(message).trim();
 		System.out.printf("message = [[%s]]\n", message);

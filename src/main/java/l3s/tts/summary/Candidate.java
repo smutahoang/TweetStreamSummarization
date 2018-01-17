@@ -10,7 +10,7 @@ public class Candidate {
 	public static final String SPACE = "\\s+";
 	public static final String TAG = "(/[a-z,.:;$]+(\\s+|$))|(/''(\\s+|$))";
 	public static final String COLLAPSE = "xx";
-	private List<Node> nodelList;
+	private List<Node> nodeList;
 	private String candidateString;
 	private boolean isDiscard;
 	private boolean isCollapsed;
@@ -18,12 +18,13 @@ public class Candidate {
 
 	public Candidate() {
 		// TODO Auto-generated constructor stub
-		nodelList = new ArrayList<Node>();
+		nodeList = new ArrayList<Node>();
 		candidateString = "";
 		isDiscard = false;
 		isCollapsed = false;
 		score = 0;
 	}
+
 	public void setCandidateString(String candidateString) {
 		this.candidateString = candidateString;
 	}
@@ -45,11 +46,11 @@ public class Candidate {
 	}
 
 	public List<Node> getNodeList() {
-		return nodelList;
+		return nodeList;
 	}
 
 	public void addNode(Node node) {
-		nodelList.add(node);
+		nodeList.add(node);
 		candidateString += " " + node.getNodeName();
 	}
 
@@ -69,27 +70,27 @@ public class Candidate {
 	 * 
 	 * @return score of the path
 	 */
-	public void computeScore() {
+	public void computeScore1() {
 
-		if (nodelList.size() != 0) {
-			List<int[]> overlap = nodelList.get(0).getTweetPosPairs();
+		if (nodeList.size() != 0) {
+			List<int[]> overlap = nodeList.get(0).getTweetPosPairs();
 
 			switch (Configure.SCORING_FUNCTION) {
 			case GAIN_REDUNDANCY_ONLY:
-				for (int i = 1; i < nodelList.size(); i++) {
-					overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
+				for (int i = 1; i < nodeList.size(); i++) {
+					overlap = getOverlapIntersection(overlap, nodeList.get(i).getTweetPosPairs());
 					score = score + (double) overlap.size();
 				}
 				break;
 			case GAIN_WEIGHTED_REDUNDANCY_BY_LEVEL:
-				for (int i = 1; i < nodelList.size(); i++) {
-					overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
+				for (int i = 1; i < nodeList.size(); i++) {
+					overlap = getOverlapIntersection(overlap, nodeList.get(i).getTweetPosPairs());
 					score = score + (double) (overlap.size() * (i + 1));
 				}
 				break;
 			case GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL:
-				for (int i = 1; i < nodelList.size(); i++) {
-					overlap = getOverlapIntersection(overlap, nodelList.get(i).getTweetPosPairs());
+				for (int i = 1; i < nodeList.size(); i++) {
+					overlap = getOverlapIntersection(overlap, nodeList.get(i).getTweetPosPairs());
 					score = score + (double) overlap.size() * Math.log(i + 1);
 				}
 				break;
@@ -99,11 +100,53 @@ public class Candidate {
 		}
 
 	}
-	
-	
+
+	// compute score of a path according to the Filippova paper
+	public double computeScore() {
+		score = 0;
+		for (int i = 0; i < nodeList.size() - 1; i++) {
+			int freqOfINode = nodeList.get(i).getTweetPosPairs().size();
+			int freqOfIPlus1Node = nodeList.get(i + 1).getTweetPosPairs().size();
+			score += (freqOfINode + freqOfIPlus1Node) / (getOverlappingDistance(nodeList.get(i).getTweetPosPairs(),
+					nodeList.get(i + 1).getTweetPosPairs()) * freqOfINode * freqOfIPlus1Node);
+		}
+		//score = score/Math.log(nodeList.size());
+		return score;
+	}
+
+	// get overlapping distance between two nodes
+	public static double getOverlappingDistance(List<int[]> left, List<int[]> right) {
+		double diff = 0;
+		int pointer = 0;
+		int i = 0;
+		while (i < left.size()) {
+			int[] eleft = left.get(i);
+			if (pointer > right.size())
+				break;
+			int j = pointer;
+			while (j < right.size()) {
+				int[] eright = right.get(j);
+				if (eright[0] == eleft[0]) {
+					if (eright[1] > eleft[1]) {
+						diff += (double) 1 / (eright[1] - eleft[1]);
+						//System.out.println(eright[1] + "\t" + eleft[1]);
+						pointer = j;
+						break;
+					}
+
+				} else if (eright[0] > eleft[0])
+					break;
+				++j;
+			}
+			++i;
+		}
+		return diff;
+	}
+
 	public void computeAdjustScore(double score) {
-		if (nodelList.size() != 0) {
-			score = score/nodelList.size();
+		// if(nodeList.size() == 1) this.score = 0;
+		if (nodeList.size() != 0) {
+			this.score = score / nodeList.size();
 		}
 	}
 
@@ -131,7 +174,7 @@ public class Candidate {
 						pointer = j + 1;
 						break;
 					}
-					eright[1] = eleft[1];
+					// eright[1] = eleft[1];
 				} else if (eright[0] > eleft[0])
 					break;
 				++j;
@@ -170,8 +213,8 @@ public class Candidate {
 
 	public double computeJaccardScore(Candidate other) {
 		double result = 0;
-		HashSet<Node> union = new HashSet<Node>(this.nodelList);
-		HashSet<Node> intersection = new HashSet<Node>(this.nodelList);
+		HashSet<Node> union = new HashSet<Node>(this.nodeList);
+		HashSet<Node> intersection = new HashSet<Node>(this.nodeList);
 		union.addAll(other.getNodeList());
 		intersection.retainAll(other.getNodeList());
 		result = (double) intersection.size() / union.size();
@@ -228,6 +271,7 @@ public class Candidate {
 
 		return result;
 	}
+
 	public String getCan() {
 		return candidateString;
 	}

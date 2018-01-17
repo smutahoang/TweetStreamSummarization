@@ -3,10 +3,12 @@ package l3s.tts.summary;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
 
@@ -20,6 +22,9 @@ public class IncrementalModel extends SummarizationModel {
 	private Formatter format;
 	private LinkedList<Tweet> recentTweets;
 
+	public IncrementalModel() {
+		super();
+	}
 	public IncrementalModel(TweetStream stream, String outputDir) {
 		super();
 		this.stream = stream;
@@ -27,6 +32,7 @@ public class IncrementalModel extends SummarizationModel {
 		recentTweets = new LinkedList<Tweet>();
 
 	}
+
 	public void openFile(String output) {
 		try {
 			format = new Formatter(output);
@@ -35,6 +41,7 @@ public class IncrementalModel extends SummarizationModel {
 			e.printStackTrace();
 		}
 	}
+
 	/**
 	 * read tweets from stream and start generate summary
 	 */
@@ -43,11 +50,10 @@ public class IncrementalModel extends SummarizationModel {
 		int nOfTweets = 0;
 		long startTime = System.currentTimeMillis();
 		long endTime;
-		
-		
+
 		while ((tweet = stream.getTweet()) != null) {
-			if (tweet.isReTweet())
-				continue; // ignore retweets
+			//if (tweet.isReTweet())
+			//	continue; // ignore retweets
 
 			tweet.tagTokens(preprocessingUtils);
 			recentTweets.add(tweet);
@@ -60,13 +66,14 @@ public class IncrementalModel extends SummarizationModel {
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				generateSummary();
 				startTime = System.currentTimeMillis();
+				//System.exit(-1);
 
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
 				endTime = System.currentTimeMillis();
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				update();
-					startTime = System.currentTimeMillis();
+				startTime = System.currentTimeMillis();
 			}
 
 		}
@@ -75,44 +82,55 @@ public class IncrementalModel extends SummarizationModel {
 	}
 
 	public void generateSummary() {
-		long time1, time2, time3, time4, time5;
+		long time1, time2, time3, time4, time5, time6;
 		time1 = System.currentTimeMillis();
 		buildAliasSampler();
+		//testAlias();
+		
+		
 		time2 = System.currentTimeMillis();
-
+		
 		System.out.println("\n>>>>>>>>>>>>Find valid paths");
 		findingCandidates();
 		time3 = System.currentTimeMillis();
 		System.out.println(".......................GRAPH......................");
 		printGraph();
+		
+		System.out.printf("\n%s\n", ">>>>>>>>>>>>>Compute score of candidates");
+		computeCandidateScores();
+		
 		System.out.println(".......................LIST OF CANDIDATES.......................\n");
 		printCandidates();
-		
+
 		System.out.println("................................................................");
+		time3 = System.currentTimeMillis();
+		System.out.println("\n>>>>>>>>>>>>Remove duplicates");
 
-		// System.out.println("\n>>>>>>>>>>>>Remove duplicates");
-
-		// removeDuplicates();
-		// time2 = System.currentTimeMillis();
-		// System.out.printf("--------->Time for removing candidates: %d\n", (time2 -
-		// time1));
+		removeDuplicates();
+		time4 = System.currentTimeMillis();
+		
 
 		System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 		combineTweets();
-		time4 = System.currentTimeMillis();
-
+		time5 = System.currentTimeMillis();
+		
+		System.out.println(
+				"...................LIST OF CANDIDATES (AFTER REMOVING AND COMBINING)...................\n");
+		printCandidates();
+		System.out.println("................................................................");
+		
 		System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
 		ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
-		time5 = System.currentTimeMillis();
+		time6 = System.currentTimeMillis();
 
-		System.out.println(".......................LIST OF CANDIDATES (BEFORE REMOVING AND SORTING).......................\n");
-		printCandidates();
+		
 
 		System.out.println("................................................................");
 		System.out.printf("--------->Time for building alias: %d\n", (time2 - time1));
 		System.out.printf("--------->Time for finding candidates: %d\n", (time3 - time2));
-		System.out.printf("--------->Time for combining candidates: %d\n", (time4 - time3));
-		System.out.printf("--------->Time for sorting and getting high score candidates: %d\n", (time5 - time4));
+		System.out.printf("--------->Time for removing candidates: %d\n", (time4 - time3));
+		System.out.printf("--------->Time for combining candidates: %d\n", (time5 - time4));
+		System.out.printf("--------->Time for sorting and getting high score candidates: %d\n", (time6 - time5));
 		System.out.println("\n-----------------------FINAL SUMMARY-----------------------");
 		for (Candidate can : summary)
 			System.out.println(can);
@@ -123,10 +141,26 @@ public class IncrementalModel extends SummarizationModel {
 		affectedNodesByRemoving.clear();
 
 	}
+	
+	public void testAlias() {
+		String nodeName = "the/dt";
+		Node corresNode = wordNodeMap.get(nodeName);
+		
+		HashMap<DefaultWeightedEdge, Double> edgeWeightMap = corresNode.getWeightsOfOutgoingNodes();
+		for(Map.Entry<DefaultWeightedEdge, Double> entry: edgeWeightMap.entrySet())  {
+			DefaultWeightedEdge edge = entry.getKey();
+			System.out.println(graph.getEdgeSource(edge) +"-->"+graph.getEdgeTarget(edge)+":" +entry.getValue());
+		}
+		for(int i = 0; i<1000; i++) {
+			DefaultWeightedEdge nextNode = corresNode.sampleOutgoingEdges();
+			System.out.println(graph.getEdgeTarget(nextNode));
+		}
+		System.exit(-1);
+	}
 
 	public void reGenerateSummary() {
 
-		long time1, time2, time3, time4;
+		long time1, time2, time3, time4, time5;
 		time1 = System.currentTimeMillis();
 
 		if (Configure.SIMPLE_UPDATE) {
@@ -163,16 +197,20 @@ public class IncrementalModel extends SummarizationModel {
 						double currentScore = 0;
 						currentOverlap.addAll(nodesOfCandidate.get(0).getTweetPosPairs());
 						newCan.addNode(nodesOfCandidate.get(0));
-						System.out.printf("--> VSN: %s", nodesOfCandidate.get(0).getNodeName()); //in the sentences: [", nodesOfCandidate.get(0).getNodeName());
-						/*for (int[] array : nodesOfCandidate.get(0).getTweetPosPairs()) {
-							System.out.printf("[%d %d]", array[0], array[1]);
-						}
-						System.out.printf("]\n");*/
+						System.out.printf("--> VSN: %s", nodesOfCandidate.get(0).getNodeName()); // in the sentences:
+																									// [",
+																									// nodesOfCandidate.get(0).getNodeName());
+						/*
+						 * for (int[] array : nodesOfCandidate.get(0).getTweetPosPairs()) {
+						 * System.out.printf("[%d %d]", array[0], array[1]); } System.out.printf("]\n");
+						 */
 						for (int k = 1; k <= j; k++) {
 							Node node = nodesOfCandidate.get(k);
 							newCan.addNode(node);
-							currentOverlap = getOverlapIntersection(currentOverlap, node.getTweetPosPairs());
-							currentScore = computeScore(currentScore, currentOverlap, can.getNodeList().size());
+							//currentOverlap = getOverlapIntersection(currentOverlap, node.getTweetPosPairs());
+							//currentScore = computeScore(currentScore, currentOverlap, can.getNodeList().size());
+							//double weight = graph.getEdgeWeight(graph.getEdge(nodesOfCandidate.get(k-1), nodesOfCandidate.get(k)));
+							//currentScore = computeScore(currentScore, currentOverlap, can.getNodeList().size(), weight);
 						}
 						sampleAValidPath(newCan, nodesOfCandidate.get(j), currentOverlap, currentScore);
 						// loop++;
@@ -212,7 +250,9 @@ public class IncrementalModel extends SummarizationModel {
 					}
 				}
 			}
-
+			System.out.printf("\n%s\n", ">>>>>>>>>>>>>Compute score of candidates");
+			computeCandidateScores();
+			
 			System.out.println(".......................LIST OF CANDIDATES.......................\n");
 			printCandidates();
 			System.out.println(".......................GRAPH......................");
@@ -224,28 +264,34 @@ public class IncrementalModel extends SummarizationModel {
 					removedCanInReOAdd);
 			System.out.printf("+++++The number of new valid starting nodes: %d\n", newValidStartingNode);
 
+			
 			time2 = System.currentTimeMillis();
 
-			// System.out.println("\n>>>>>>>>>>>>Remove duplicates");
-			// removeDuplicates();
-			// time1 = System.currentTimeMillis();
-			// System.out.printf("--------->Time for removing: %d\n", (time1 - time2));
+			System.out.println("\n>>>>>>>>>>>>Remove duplicates");
+			removeDuplicates();
+			time3 = System.currentTimeMillis();
+
 
 			System.out.println("\n>>>>>>>>>>>>Combine valid paths");
 			combineTweets();
-			time3 = System.currentTimeMillis();
-
-			System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
-			ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
 			time4 = System.currentTimeMillis();
-
-			System.out.println(".......................LIST OF CANDIDATES (BEFORE REMOVING AND SORTING).......................\n");
+			
+			System.out.println(
+					"...................LIST OF CANDIDATES (AFTER REMOVING AND COMBINING)...................\n");
 			printCandidates();
 			System.out.println("................................................................");
+			
+			System.out.println("\n>>>>>>>>>>>>Sort and get final paths");
+			ArrayList<Candidate> summary = sortAndGetHighScoreSummaries();
+			time5 = System.currentTimeMillis();
+
+			
 
 			System.out.printf("--------->Time for resampling: %d\n", (time2 - time1));
-			System.out.printf("--------->Time for combining: %d\n", (time3 - time2));
-			System.out.printf("--------->Time for sorting and getting final candidates: %d\n", (time4 - time3));
+			System.out.printf("--------->Time for removing: %d\n", (time3 - time2));
+			System.out.printf("--------->Time for combining: %d\n", (time4 - time3));
+			
+			System.out.printf("--------->Time for sorting and getting final candidates: %d\n", (time5 - time4));
 			System.out.println("\n-----------------------FINAL SUMMARY-----------------------");
 			for (Candidate can : summary)
 				System.out.println(can);
@@ -305,10 +351,10 @@ public class IncrementalModel extends SummarizationModel {
 				double weight = graph.getEdgeWeight(edge);
 				weight = weight - tweet.getWeight();
 				if (weight == 0) {
-					//if (edge != null) {
-						source.setWeightOfOutgoingNodes(edge, 0);
-						graph.removeEdge(edge);
-					//}
+					// if (edge != null) {
+					source.setWeightOfOutgoingNodes(edge, 0);
+					graph.removeEdge(edge);
+					// }
 					// System.out.println("remove an outgoing node of:"+source);
 				} else {
 					graph.setEdgeWeight(edge, weight);
@@ -319,22 +365,23 @@ public class IncrementalModel extends SummarizationModel {
 				// remove pairs of tweetId - position out of the information of the node
 				source.removeTweetPosPair(tweet.getTweetId(), j); // should re-factor this function
 
-				/*if (source.getTweetPosPairs().size() == 0) {
-					wordNodeMap.remove(nodeString);
-					graph.removeVertex(source);
-				}*/
+				/*
+				 * if (source.getTweetPosPairs().size() == 0) { wordNodeMap.remove(nodeString);
+				 * graph.removeVertex(source); }
+				 */
 
 				j++;
 				source = target;
 			}
 			target.removeTweetPosPair(tweet.getTweetId(), j); // should re-factor this function
 
-			/*if (target.getTweetPosPairs().size() == 0) {
-				wordNodeMap.remove(nodeString);
-				graph.removeVertex(target);
-			}*/
+			/*
+			 * if (target.getTweetPosPairs().size() == 0) { wordNodeMap.remove(nodeString);
+			 * graph.removeVertex(target); }
+			 */
 
 		}
 
 	}
+	
 }
