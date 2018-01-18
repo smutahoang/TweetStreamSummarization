@@ -100,17 +100,44 @@ public class Candidate {
 		}
 
 	}
+	
+	// compute score of a path according to the Filippova paper and trigram overlap 
+		public double computeScore2() {
+			score = computeScore()/nodeList.size();
+			double weight = 0;
+			List<int[]> overlap;
+			for (int i = 1; i < nodeList.size() - 1; i++) {
+				overlap = getOverlapIntersection(nodeList.get(i-1).getTweetPosPairs(), nodeList.get(i).getTweetPosPairs());
+				overlap = getOverlapIntersection(overlap, nodeList.get(i+1).getTweetPosPairs());
+				weight += overlap.size();
+			}
+			score = score + 1/(weight * nodeList.size());
+			return score;
+		}
 
 	// compute score of a path according to the Filippova paper
 	public double computeScore() {
 		score = 0;
+		double weight = 0;
 		for (int i = 0; i < nodeList.size() - 1; i++) {
 			int freqOfINode = nodeList.get(i).getTweetPosPairs().size();
 			int freqOfIPlus1Node = nodeList.get(i + 1).getTweetPosPairs().size();
-			score += (freqOfINode + freqOfIPlus1Node) / (getOverlappingDistance(nodeList.get(i).getTweetPosPairs(),
-					nodeList.get(i + 1).getTweetPosPairs()) * freqOfINode * freqOfIPlus1Node);
+
+			weight = (freqOfINode + freqOfIPlus1Node) /(
+					getOverlappingDistance(nodeList.get(i).getTweetPosPairs(), nodeList.get(i + 1).getTweetPosPairs()));
+
+			// reduce the importance of stopwords
+			String iNodeName = nodeList.get(i).getNodeName().substring(0, nodeList.get(i).getNodeName().indexOf("/"));
+			String iPlus1NodeName = nodeList.get(i + 1).getNodeName().substring(0,
+					nodeList.get(i + 1).getNodeName().indexOf("/"));
+			if (Configure.stopWords.contains(iNodeName))
+				freqOfINode = 1;
+			if (Configure.stopWords.contains(iPlus1NodeName))
+				freqOfIPlus1Node = 1;
+			
+			score += weight/(freqOfINode*freqOfIPlus1Node);
 		}
-		//score = score/Math.log(nodeList.size());
+		// score = score/Math.log(nodeList.size());
 		return score;
 	}
 
@@ -129,7 +156,7 @@ public class Candidate {
 				if (eright[0] == eleft[0]) {
 					if (eright[1] > eleft[1]) {
 						diff += (double) 1 / (eright[1] - eleft[1]);
-						//System.out.println(eright[1] + "\t" + eleft[1]);
+						// System.out.println(eright[1] + "\t" + eleft[1]);
 						pointer = j;
 						break;
 					}

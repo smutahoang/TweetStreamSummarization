@@ -66,7 +66,7 @@ public class IncrementalModel extends SummarizationModel {
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				generateSummary();
 				startTime = System.currentTimeMillis();
-				//System.exit(-1);
+				System.exit(-1);
 
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {

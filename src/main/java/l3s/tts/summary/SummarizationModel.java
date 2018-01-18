@@ -180,7 +180,7 @@ public class SummarizationModel {
 					System.out.printf("+ Invalid (doesnt contain a verb: %s)", can.getCan());
 					break;
 				}*/
-				//if (can.isValidCandidate()) {
+				if (can.isValidCandidate()) {
 					//can.computeAdjustScore(currentScore);
 					candidates.add(can);
 					//System.out.printf(" + Valid: %s\n", can.getCan());
@@ -190,12 +190,12 @@ public class SummarizationModel {
 					}
 					System.out.println();
 					// System.out.println(can);
-				//	break;
-				//} else {
-				//	System.out.printf(" + EndButInvalid: %s\n", can.getCan());
-					// System.out.println(can);
 					break;
-				//}
+				} else {
+					System.out.printf(" + EndButInvalid: %s\n", can.getCan());
+					 System.out.println(can);
+					break;
+				}
 					
 				// check if containing a circle in candidate
 				
@@ -259,7 +259,7 @@ public class SummarizationModel {
 	// compute score after finding all candidates
 	public void computeCandidateScores() {
 		for(int i = 0; i<candidates.size(); i++) {
-			candidates.get(i).computeScore();
+			candidates.get(i).computeScore2();
 		}
 	}
 
