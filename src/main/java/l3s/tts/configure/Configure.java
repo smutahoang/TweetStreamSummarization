@@ -13,15 +13,16 @@ public class Configure {
 	public static String WORKING_DIRECTORY;
 
 
-	public static int MAX_SUMMARIES = 5;
+	public static int TWEETS_IN_EACH_SUBTOPIC = 1;
 
 
 	public static int WINDOW_SIZE = 4;
-	public static int RANDOM_WALK_AT_EACH_NODE = 4;
+	public static int NUMBER_OF_RANDOM_WALK_AT_EACH_NODE = 4;
 	public static int RANDOM_WALK_LENGTH = 20;
 	public static double DAMPING_FACTOR = 0.15;
 	public static int L_EXPANSION = 2;
-	public static double MAGINAL_UTILITY = 0.1;
+	public static double MAGINAL_UTILITY = 0.5;
+	public static int MAX_SUMMARIES = 5;
 
 	public static boolean STOP_AT_ENDINGTOKENS = true;
 	public static int NUMBER_OF_REMOVING_TWEETS = 2;

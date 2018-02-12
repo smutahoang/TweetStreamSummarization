@@ -65,7 +65,7 @@ public class IncrementalModel extends SummarizationModel {
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 
 				generateSummary();
-
+				
 				startTime = System.currentTimeMillis();
 				//System.exit(-1);
 
@@ -74,7 +74,9 @@ public class IncrementalModel extends SummarizationModel {
 				endTime = System.currentTimeMillis();
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				update();
+				System.out.printf("\n................NUMBER OF NODES: %d...............\n", wordNodeMap.size());
 				startTime = System.currentTimeMillis();
+				
 			}
 
 		}
@@ -106,6 +108,11 @@ public class IncrementalModel extends SummarizationModel {
 		printSummary(summary);
 		long time8 = System.currentTimeMillis();
 		
+		subtopics.clear();
+		affectedNodesByAdding.clear();
+		affectedNodesByRemoving.clear();
+		newNodes.clear();
+		
 		System.out.printf(">>>>>>>>>>>TIME FOR REMOVING OLDEST TWEETS: %d\n", (time2 - time1));
 		System.out.printf(">>>>>>>>>>>TIME FOR BUILDING ALIAS SAMPLER: %d\n", (time3 - time2));
 		System.out.printf(">>>>>>>>>>>TIME FOR UPDATE RANDOM WALK: %d\n", (time4 - time3));
@@ -116,6 +123,7 @@ public class IncrementalModel extends SummarizationModel {
 	}
 
 	public void removeOldestTweets() {
+		int numberOfRemovedNodes = 0;
 		for (int i = 0; i < Configure.NUMBER_OF_REMOVING_TWEETS; i++) {
 			Tweet tweet = recentTweets.removeFirst();
 			List<String> terms = tweet.getTerms(preprocessingUtils);
@@ -143,9 +151,12 @@ public class IncrementalModel extends SummarizationModel {
 				if (graph.incomingEdgesOf(source).size() == 0 && graph.outgoingEdgesOf(source).size() == 0) {
 					graph.removeVertex(source);
 					wordNodeMap.remove(terms.get(j));
+					numberOfRemovedNodes++;
 				}
 			}
 		}
+		System.out.printf("\n.................NUMBER OF NODES REMOVED: %d\n", numberOfRemovedNodes);
+		System.out.printf("\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n", affectedNodesByRemoving.size());
 	}
 
 	public void updateRandomWalkSegments() {
@@ -176,12 +187,13 @@ public class IncrementalModel extends SummarizationModel {
 		while(iter.hasNext()) {
 			
 			Node node = iter.next();
-			for(int i = 0; i<Configure.RANDOM_WALK_AT_EACH_NODE; i++) {
+			for(int i = 0; i<Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
 				ArrayList<Node> newSeg = new ArrayList<Node>();
 				newSeg.add(node);
 				randomWalk(newSeg, node);
 			}
 		}
+		
 	}
 
 	public void generateSummary() {
@@ -206,7 +218,10 @@ public class IncrementalModel extends SummarizationModel {
 		List<String> summary = getTopKTweetsInSummary();
 		printSummary(summary);
 		long time7 = System.currentTimeMillis();
-		
+		subtopics.clear();
+		affectedNodesByAdding.clear();
+		affectedNodesByRemoving.clear();
+		newNodes.clear();
 		
 		System.out.printf(">>>>>>>>>>>TIME FOR BUILDING ALIAS SAMPLER: %d\n", (time2 - time1));
 		System.out.printf(">>>>>>>>>>>TIME FOR RANDOM WALK AND STORING SEGMENTS: %d\n", (time4 - time2));
@@ -221,6 +236,7 @@ public class IncrementalModel extends SummarizationModel {
 		Iterator<Node> iter = nodesInGraph.iterator();
 		while(iter.hasNext()) {
 			Node node = iter.next();
+			node.resetSegments();
 			node.updatePageRank(0);
 		}
 	}

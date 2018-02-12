@@ -92,7 +92,7 @@ public class SummarizationModel {
 			subtopics.add(bestNode);
 			nodeSet.remove(bestNode);
 			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
-			
+
 		}
 	}
 
@@ -107,7 +107,7 @@ public class SummarizationModel {
 		}
 		return importantTweets;
 	}
-	
+
 	public List<String> getTopKTweetsInSummary() {
 		Iterator<Node> iter = subtopics.iterator();
 		HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
@@ -117,7 +117,7 @@ public class SummarizationModel {
 				importantTweets.put(t, computeTweetScore(t));
 			}
 		}
-		
+
 		PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
 		for (Map.Entry<Tweet, Double> tweet : importantTweets.entrySet()) {
 			String text = tweet.getKey().getText();
@@ -126,14 +126,14 @@ public class SummarizationModel {
 				queue.add(new KeyValue_Pair(text, score));
 			} else {
 				KeyValue_Pair head = queue.peek();
-				
+
 				if (head.getDoubleValue() < score) {
 					queue.poll();
 					queue.add(new KeyValue_Pair(text, score));
 				}
 			}
 		}
-		
+
 		List<String> topTweets = new ArrayList<String>();
 		while (!queue.isEmpty()) {
 			topTweets.add(queue.poll().getStrKey());
@@ -170,7 +170,7 @@ public class SummarizationModel {
 
 			currNode = wordNodeMap.get(terms.get(i));
 			currNode.addTweet(tweet);
-			
+
 			for (int k = 1; k < Configure.WINDOW_SIZE; k++) {
 				if (i + k >= terms.size())
 					break;
@@ -210,22 +210,20 @@ public class SummarizationModel {
 			Node node = iter.next();
 
 			int i = 0;
-			while (i < Configure.RANDOM_WALK_AT_EACH_NODE) {
-				
+			while (i < Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE) {
+
 				ArrayList<Node> seg = new ArrayList<Node>();
 				seg.add(node);
 				randomWalk(seg, node);
-				
-
 
 				i++;
 			}
 		}
 	}
-	
+
 	public void randomWalk(ArrayList<Node> seg, Node node) {
 		Node currNode = node;
-		
+
 		int length = seg.size();
 		while (length < Configure.RANDOM_WALK_LENGTH) {
 			double x = rand.nextDouble();
@@ -243,10 +241,11 @@ public class SummarizationModel {
 
 	public void computePageRank() {
 		for (int i = 0; i < segments.size(); i++) {
-			Iterator<Node> iter = segments.get(i).iterator();
-			while (iter.hasNext()) {
-				Node node = iter.next();
-				node.increaseSegments();
+			for (int j = 0; j < segments.get(i).size(); j++) {
+				Node node = segments.get(i).get(j);
+				if (segments.get(i).indexOf(node) == j) // only increase in the first appearing of the node in the
+														// segment
+					node.increaseSegments();
 			}
 		}
 
@@ -256,10 +255,10 @@ public class SummarizationModel {
 		while (iter.hasNext()) {
 			Node node = iter.next();
 
-			double pageRankScore = node.getSegments()
-					/ (wordNodeMap.values().size() * Configure.RANDOM_WALK_AT_EACH_NODE / Configure.DAMPING_FACTOR);
-			System.out.println(
-					node + "\t" + node.getSegments() + "\t" + wordNodeMap.size() * Configure.RANDOM_WALK_AT_EACH_NODE);
+			double pageRankScore = node.getSegments() / (wordNodeMap.values().size()
+					* Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE / Configure.DAMPING_FACTOR);
+			System.out.println(node + "\t" + node.getSegments() + "\t"
+					+ wordNodeMap.size() * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
 			node.updatePageRank(pageRankScore);
 		}
 	}
