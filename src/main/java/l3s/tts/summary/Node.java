@@ -2,30 +2,25 @@ package l3s.tts.summary;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Random;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
 
-import l3s.tts.configure.Configure;
 import l3s.tts.utils.AliasSample;
+import l3s.tts.utils.Tweet;
 
 public class Node {
 
 	private String nodeName;
-	private List<int[]> tweetPosPairs;// set of pairs of sentence Index and word's position
-	private int sumPos;
+	private double pageRank;
+	private int numberOfSegment;
 	private HashMap<DefaultWeightedEdge, Double> weightsOfOutgoingNodes;
 	private AliasSample alias;
+	private HashSet<Tweet> listOfTweets;
 	
-	public void removeTweetPosPair(int tweetId, int position) {
-		for(int i = 0; i<tweetPosPairs.size(); i++) {
-			if(tweetPosPairs.get(i)[0] == tweetId && tweetPosPairs.get(i)[1] == position) {
-				tweetPosPairs.remove(i);
-				sumPos = sumPos - position;
-				break;
-			}
-		}
+	public void addTweet(Tweet tweet) {
+		listOfTweets.add(tweet);
 	}
 	
 	public HashMap<DefaultWeightedEdge, Double> getWeightsOfOutgoingNodes() {
@@ -62,53 +57,52 @@ public class Node {
 		return edges.get(i);
 		
 	}
+	public void increaseSegments() {
+		numberOfSegment++;
+	}
+	public void resetSegments() {
+		numberOfSegment = 0;
+	}
+	public int getSegments() {
+		return numberOfSegment;
+	}
+	public void updatePageRank(double pageRank) {
+		this.pageRank = pageRank;
+	}
 	
+	public double getPageRank() {
+		return pageRank;
+	}
 	public AliasSample getAlias() {
 		return alias;
 	}
 	public Node(Random rand) {
 		// TODO Auto-generated constructor stub
-		sumPos = 0;
-		tweetPosPairs = new ArrayList<int[]>();
+		
 		weightsOfOutgoingNodes = new HashMap<DefaultWeightedEdge, Double>();
 		alias = new AliasSample(rand);
+		numberOfSegment = 0;
+		pageRank = 0;
+		listOfTweets = new HashSet<Tweet>();
 		
+	}
+	
+	public HashSet<Tweet> getTweets() {
+		return listOfTweets;
+	}
+	
+	public void removeTweet(Tweet tweet) {
+		listOfTweets.remove(tweet);
 	}
 	public String getNodeName() {
 		return nodeName;
 	}
-	public List<int[]> getTweetPosPairs() {
-		return tweetPosPairs;
-	}
-
-	public void addNewTweetPosPair(int tweetId, int position) {
-		tweetPosPairs.add(new int[] {tweetId, position});
-		sumPos += position;
-	}
+	
 	public void setNodeName(String nodeName) {
 		this.nodeName = nodeName;
 	}
 	
-	public double getAveragePos() {
-		return (double)sumPos/tweetPosPairs.size();
-	}
 	
-	public boolean isVSN() {
-		//String tagName = nodeName.substring(nodeName.indexOf("/"));
-		if (getAveragePos() <= Configure.VSN_POS && (nodeName.matches(Configure.VSN_TAGs)||nodeName.matches(Configure.VSN_NAME))) {
-            return true;
-        }
-        return false;
-
-	}
-	
-	public boolean isEndTokenInNodeName() {
-		return nodeName.matches(Configure.ENDTOKENS);
-	}
-	
-	public boolean isCollapse() {
-		return nodeName.matches(Configure.OVERLAP_NODE);
-	}
 	
 	public String toString() {
 		/*String s = nodeName+"{";
