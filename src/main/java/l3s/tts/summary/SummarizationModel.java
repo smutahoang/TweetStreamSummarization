@@ -13,7 +13,7 @@ import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
-import org.jgrapht.graph.SimpleDirectedGraph;
+import org.jgrapht.graph.SimpleGraph;
 
 import l3s.tts.configure.Configure;
 import l3s.tts.utils.KeyValue_Pair;
@@ -22,7 +22,7 @@ import l3s.tts.utils.TweetPreprocessingUtils;
 
 public class SummarizationModel {
 	protected TweetPreprocessingUtils preprocessingUtils;
-	protected SimpleDirectedGraph<Node, DefaultWeightedEdge> graph;
+	protected SimpleGraph<Node, DefaultWeightedEdge> graph;
 	protected HashMap<String, Node> wordNodeMap;
 	protected List<Candidate> candidates;
 	protected HashSet<Node> affectedNodesByAdding;
@@ -36,7 +36,7 @@ public class SummarizationModel {
 	public SummarizationModel() {
 		// TODO Auto-generated constructor stub
 		wordNodeMap = new HashMap<String, Node>();
-		graph = new SimpleDirectedGraph<Node, DefaultWeightedEdge>(DefaultWeightedEdge.class);
+		graph = new SimpleGraph<Node, DefaultWeightedEdge>(DefaultWeightedEdge.class);
 		preprocessingUtils = new TweetPreprocessingUtils();
 		affectedNodesByAdding = new HashSet<Node>();
 		affectedNodesByRemoving = new HashSet<Node>();
@@ -54,43 +54,57 @@ public class SummarizationModel {
 		nodeSet.addAll(wordNodeMap.values());
 		Scanner scan = new Scanner(System.in);
 		double utility = Double.MAX_VALUE;
-		while (utility > Configure.MAGINAL_UTILITY) {
+		double sumOfUtility = 0;
+		HashSet<Node> coveredSet = new HashSet<Node>();
+		while (utility/sumOfUtility > Configure.MAGINAL_UTILITY) {
 			Iterator<Node> iter = nodeSet.iterator();
 			Node bestNode = null;
 			double max = 0;
-			// iterate all node that havent added into subtopic set
+			// iterate all node that havent added into subtopic set to find a node with the highest coverage
+			HashSet<Node> maxCoveredSetOfCurrNode = new HashSet<Node>();
 			while (iter.hasNext()) {
 				// find node with the highest coverage
 				Node node = iter.next();
-				double coveringScore = 0;
+				double coverageScore = 0;
 				List<Node> currSet = new ArrayList<Node>();
 				currSet.add(node);
+				
+				// get expansion set of the current node
+				HashSet<Node> expansionSetOfCurrNode = new HashSet<Node>();
 				for (int i = 0; i < Configure.L_EXPANSION; i++) {
+					// get ith-expansion set 
 					Set<Node> expansionSet = new HashSet<Node>();
 					for (Node nodeInCurrSet : currSet) {
-						List<DefaultWeightedEdge> incomingEges = new ArrayList<DefaultWeightedEdge>(
-								graph.incomingEdgesOf(nodeInCurrSet));
-
-						for (int j = 0; j < incomingEges.size(); j++) {
-							Node n = graph.getEdgeSource(incomingEges.get(j));
-							if (!subtopics.contains(n)) {
+						List<DefaultWeightedEdge> edges = new ArrayList<DefaultWeightedEdge>(
+								graph.edgesOf(nodeInCurrSet));
+						// get all neighbors
+						for (int j = 0; j < edges.size(); j++) {
+							Node n = graph.getEdgeSource(edges.get(j));
+							if(n.equals(nodeInCurrSet))
+								n = graph.getEdgeTarget(edges.get(j));
+							if (!subtopics.contains(n)&&!coveredSet.contains(n)) {
 								expansionSet.add(n);
-								coveringScore += n.getPageRank();
+								coverageScore += n.getPageRank();
 
 							}
 
 						}
 					}
 					currSet = new ArrayList<Node>(expansionSet);
+					expansionSetOfCurrNode.addAll(expansionSet);
 				}
-				if (coveringScore > max) {
-					max = coveringScore;
+				if (coverageScore > max) {
+					max = coverageScore;
 					bestNode = node;
+					maxCoveredSetOfCurrNode = expansionSetOfCurrNode;
 				}
 			}
+			if(utility < Configure.MAGINAL_UTILITY) break;
 			utility = max;
+			sumOfUtility+=utility;
 			subtopics.add(bestNode);
 			nodeSet.remove(bestNode);
+			coveredSet.addAll(maxCoveredSetOfCurrNode);
 			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
 
 		}
@@ -107,14 +121,18 @@ public class SummarizationModel {
 		}
 		return importantTweets;
 	}
-
+	// get top k tweets with the highest score that cover one of the keywords
 	public List<String> getTopKTweetsInSummary() {
 		Iterator<Node> iter = subtopics.iterator();
+		// importantTweets: save all tweets in the final summary
 		HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
+		HashSet<List<String>> tweets = new HashSet<List<String>>(); // avoid adding similar sentences in the final summary
 		while (iter.hasNext()) {
 			Node node = iter.next();
 			for (Tweet t : node.getTweets()) {
-				importantTweets.put(t, computeTweetScore(t));
+				List<String> terms = t.getTerms(preprocessingUtils);
+				if(tweets.add(terms))
+					importantTweets.put(t, computeTweetScore(t));
 			}
 		}
 
@@ -142,6 +160,51 @@ public class SummarizationModel {
 
 	}
 
+	// get top k tweets for each subtopics
+	public List<String> getTopKTweetsForEachSubtopicAsASummary() {
+		Iterator<Node> iter = subtopics.iterator();
+		List<String> topTweets = new ArrayList<String>();
+		// importantTweets: save all tweets in the final summary
+		
+		HashSet<List<String>> tweets = new HashSet<List<String>>(); // avoid adding similar sentences in the final summary
+		
+		// for each node, iterate all tweets that contains the node
+		while (iter.hasNext()) {
+			Node node = iter.next();
+			HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
+			for (Tweet t : node.getTweets()) {
+				List<String> terms = t.getTerms(preprocessingUtils);
+				if(tweets.add(terms))
+					importantTweets.put(t, computeTweetScore(t));
+			}
+			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
+			for (Map.Entry<Tweet, Double> tweet : importantTweets.entrySet()) {
+				String text = tweet.getKey().getText();
+				Double score = tweet.getValue();
+				if (queue.size() < Configure.TWEETS_IN_EACH_SUBTOPIC) {
+					queue.add(new KeyValue_Pair(text, score));
+				} else {
+					KeyValue_Pair head = queue.peek();
+
+					if (head.getDoubleValue() < score) {
+						queue.poll();
+						queue.add(new KeyValue_Pair(text, score));
+					}
+				}
+			}
+			while (!queue.isEmpty()) {
+				topTweets.add(queue.poll().getStrKey());
+				
+			}
+		}
+
+		
+
+		
+		
+		return topTweets;
+
+	}
 	public double computeTweetScore(Tweet tweet) {
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		double score = 0;
@@ -153,7 +216,10 @@ public class SummarizationModel {
 	}
 
 	public void addNewTweet(Tweet tweet) {
+		
 		List<String> terms = tweet.getTerms(preprocessingUtils);
+		/*if(terms.get(0).startsWith("@"))
+			System.out.printf("Tweet: %s\n", tweet.getText());*/
 		Node currNode = null;
 		Node nextNode = null;
 		if (wordNodeMap.containsKey(terms.get(0))) {
@@ -165,6 +231,7 @@ public class SummarizationModel {
 			wordNodeMap.put(terms.get(0), currNode);
 			graph.addVertex(currNode);
 			newNodes.add(currNode);
+			//System.out.printf("\n>>>new node: %s\n", currNode);
 		}
 		for (int i = 0; i < terms.size(); i++) {
 
@@ -182,6 +249,7 @@ public class SummarizationModel {
 					nextNode.setNodeName(terms.get(i + k));
 					wordNodeMap.put(terms.get(i + k), nextNode);
 					graph.addVertex(nextNode);
+			//		System.out.printf("\n>>>new node: %s\n", nextNode);
 					newNodes.add(nextNode);
 				}
 				DefaultWeightedEdge edge = graph.getEdge(currNode, nextNode);
@@ -257,8 +325,8 @@ public class SummarizationModel {
 
 			double pageRankScore = node.getSegments() / (wordNodeMap.values().size()
 					* Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE / Configure.DAMPING_FACTOR);
-			System.out.println(node + "\t" + node.getSegments() + "\t"
-					+ wordNodeMap.size() * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
+			//System.out.println(node + "\t" + node.getSegments() + "\t"
+			//		+ wordNodeMap.size() * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
 			node.updatePageRank(pageRankScore);
 		}
 	}

@@ -61,21 +61,25 @@ public class IncrementalModel extends SummarizationModel {
 			nOfTweets++;
 
 			if (nOfTweets == Configure.TWEET_WINDOW) {
+				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
+				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
 				endTime = System.currentTimeMillis();
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
-
 				generateSummary();
 				
 				startTime = System.currentTimeMillis();
-				//System.exit(-1);
+
 
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
+				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
+				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
 				endTime = System.currentTimeMillis();
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				update();
-				System.out.printf("\n................NUMBER OF NODES: %d...............\n", wordNodeMap.size());
+
 				startTime = System.currentTimeMillis();
+				
 				
 			}
 
@@ -104,7 +108,7 @@ public class IncrementalModel extends SummarizationModel {
 		getSubtopics();
 		
 		long time7 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsInSummary();
+		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
 		printSummary(summary);
 		long time8 = System.currentTimeMillis();
 		
@@ -148,15 +152,15 @@ public class IncrementalModel extends SummarizationModel {
 
 					}
 				}
-				if (graph.incomingEdgesOf(source).size() == 0 && graph.outgoingEdgesOf(source).size() == 0) {
+				if (graph.edgesOf(source).size() == 0) {
 					graph.removeVertex(source);
 					wordNodeMap.remove(terms.get(j));
 					numberOfRemovedNodes++;
 				}
 			}
 		}
-		System.out.printf("\n.................NUMBER OF NODES REMOVED: %d\n", numberOfRemovedNodes);
-		System.out.printf("\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n", affectedNodesByRemoving.size());
+		/*System.out.printf("\n.................NUMBER OF NODES REMOVED: %d\n", numberOfRemovedNodes);
+		System.out.printf("\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n", affectedNodesByRemoving.size());*/
 	}
 
 	public void updateRandomWalkSegments() {
@@ -202,20 +206,20 @@ public class IncrementalModel extends SummarizationModel {
 		
 		long time2 = System.currentTimeMillis();
 		saveRandomWalkSegments();
-		printSegments();
+		//printSegments();
 		
 		//long time3 = System.currentTimeMillis();
 		//resetPageRank();
 		
 		long time4 = System.currentTimeMillis();
 		computePageRank();
-		printPageRank();
+		//printPageRank();
 		
 		long time5= System.currentTimeMillis();
 		getSubtopics();
 		
 		long time6 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsInSummary();
+		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
 		printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();

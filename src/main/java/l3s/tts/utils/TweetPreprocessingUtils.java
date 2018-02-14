@@ -614,7 +614,7 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "RT @KazeSkyz: Will leftist hack Jake Tapper disavow the Islamic terrorist attack in London?  #FakeNewsCNN";
+		String message = "RT @Carsfield_01: .@ChatRevolve op #Periscope: BREAKING: Firearms Incident near UK Parliament outside Westminster https://t.co/0QU69150Mn";
 		System.out.printf("message = [[%s]]\n", message);
 		List<String> terms = nlpUtils.extractTermInTweet(message);
 
