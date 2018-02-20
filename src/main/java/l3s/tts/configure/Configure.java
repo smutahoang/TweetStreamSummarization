@@ -12,9 +12,7 @@ public class Configure {
 	public static String STOPWORD_PATH;
 	public static String WORKING_DIRECTORY;
 
-
 	public static int TWEETS_IN_EACH_SUBTOPIC = 1;
-
 
 	public static int WINDOW_SIZE = 4;
 	public static int NUMBER_OF_RANDOM_WALK_AT_EACH_NODE = 4;
@@ -30,9 +28,7 @@ public class Configure {
 
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
 
-
 	public static HashSet<String> stopWords;
-
 
 	// minutes
 	public static int TWEET_WINDOW = 1000;
@@ -41,10 +37,13 @@ public class Configure {
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
-		WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
-		
+		// WORKING_DIRECTORY =
+		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
+
+		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
-	
+
 		stopWords = getStopWords();
 
 	}

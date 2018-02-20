@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -67,9 +68,8 @@ public class IncrementalModel extends SummarizationModel {
 				endTime = System.currentTimeMillis();
 				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
 				generateSummary();
-				
-				startTime = System.currentTimeMillis();
 
+				startTime = System.currentTimeMillis();
 
 			} // if it is time to update
 			else if (nOfTweets % Configure.TWEET_WINDOW == 0) {
@@ -80,8 +80,7 @@ public class IncrementalModel extends SummarizationModel {
 				update();
 
 				startTime = System.currentTimeMillis();
-				
-				
+
 			}
 
 		}
@@ -92,36 +91,36 @@ public class IncrementalModel extends SummarizationModel {
 	public void update() {
 		long time1 = System.currentTimeMillis();
 		removeOldestTweets();
-		
+
 		long time2 = System.currentTimeMillis();
 		buildAliasSampler();
-		
+
 		long time3 = System.currentTimeMillis();
-		updateRandomWalkSegments();
-		
+		updateRandomWalks();
+
 		long time4 = System.currentTimeMillis();
-		//resetPageRank();
+		//resetPageRank();		
 		
 		long time5 = System.currentTimeMillis();
 		computePageRank();
-		
+
 		long time6 = System.currentTimeMillis();
 		getSubtopics();
-		
+
 		long time7 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
 		printSummary(summary);
 		long time8 = System.currentTimeMillis();
-		
+
 		subtopics.clear();
 		affectedNodesByAdding.clear();
 		affectedNodesByRemoving.clear();
 		newNodes.clear();
-		
+
 		System.out.printf(">>>>>>>>>>>TIME FOR REMOVING OLDEST TWEETS: %d\n", (time2 - time1));
 		System.out.printf(">>>>>>>>>>>TIME FOR BUILDING ALIAS SAMPLER: %d\n", (time3 - time2));
 		System.out.printf(">>>>>>>>>>>TIME FOR UPDATE RANDOM WALK: %d\n", (time4 - time3));
-		System.out.printf(">>>>>>>>>>>TIME FOR RESET PAGERANK: %d\n", (time5 - time4) );
+		System.out.printf(">>>>>>>>>>>TIME FOR RESET PAGERANK: %d\n", (time5 - time4));
 		System.out.printf(">>>>>>>>>>>TIME FOR COMPUTING PAGERANK OF ALL NODES: %d\n", (time6 - time5));
 		System.out.printf(">>>>>>>>>>>TIME FOR GETTING SUBTOPICS: %d\n", (time7 - time6));
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time8 - time7));
@@ -133,13 +132,13 @@ public class IncrementalModel extends SummarizationModel {
 			Tweet tweet = recentTweets.removeFirst();
 			List<String> terms = tweet.getTerms(preprocessingUtils);
 			for (int j = 0; j < terms.size(); j++) {
-			
 				Node source = wordNodeMap.get(terms.get(j));
-				
-				affectedNodesByRemoving.add(source);
-			//	System.out.println(terms.get(j) +"\t" + source.getNodeName());
-			
+				// removing the tweets
 				source.removeTweet(tweet);
+				affectedNodesByRemoving.add(source);
+				// removing the edges
+				// System.out.println(terms.get(j) +"\t" +
+				// source.getNodeName());
 				for (int k = 1; k < Configure.WINDOW_SIZE; k++) {
 					if (j + k < terms.size()) {
 						Node target = wordNodeMap.get(terms.get(k));
@@ -153,6 +152,7 @@ public class IncrementalModel extends SummarizationModel {
 
 					}
 				}
+				// removing terms if needed
 				if (graph.edgesOf(source).size() == 0) {
 					graph.removeVertex(source);
 					wordNodeMap.remove(terms.get(j));
@@ -160,95 +160,97 @@ public class IncrementalModel extends SummarizationModel {
 				}
 			}
 		}
-		/*System.out.printf("\n.................NUMBER OF NODES REMOVED: %d\n", numberOfRemovedNodes);
-		System.out.printf("\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n", affectedNodesByRemoving.size());*/
+		/*
+		 * System.out.printf("\n.................NUMBER OF NODES REMOVED: %d\n",
+		 * numberOfRemovedNodes); System.out.printf(
+		 * "\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n",
+		 * affectedNodesByRemoving.size());
+		 */
 	}
 
-	
-	public void updateRandomWalkSegments1() {
-		
+	public void reWalk(HashSet<Integer> affectedWalk) {
+		for (int w : affectedWalk) {
+			// remove the walk
+			RandomWalk walk = randomWalks.get(w);
+			for (Node node : walk.getVisitedNodes()) {
+				if (!wordNodeMap.containsKey(node.getNodeName())) {
+					continue;
+				}
+				node.removeWalk(w);
+			}
+			// sample the walk again
+			Node node = walk.getStartingNode();
+			if (!wordNodeMap.containsKey(node.getNodeName())) {
+				continue;
+			}
+			RandomWalk newWalk = new RandomWalk(node);
+			node.addVisit(walkId);
+			keepWalking(newWalk, w, node);
+			randomWalks.put(w, newWalk);
+		}
+	}
+
+	public void updateRandomWalks() {
+		HashSet<Integer> affectedWalk = new HashSet<Integer>();
+
 		// affected node by adding
 		Iterator<Node> iter = affectedNodesByAdding.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Node node = iter.next();
-			
+			HashMap<Integer, Integer> visitedWalks = node.getVisistedWalk();
+			for (Map.Entry<Integer, Integer> pair : visitedWalks.entrySet()) {
+				affectedWalk.add(pair.getKey());
+			}
 		}
-		
+
 		// affected nodes by removing
 		iter = affectedNodesByRemoving.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Node node = iter.next();
-			//if
+			if (affectedNodesByAdding.contains(node)) {
+				continue;
+			}
+			HashMap<Integer, Integer> visitedWalks = node.getVisistedWalk();
+			for (Map.Entry<Integer, Integer> pair : visitedWalks.entrySet()) {
+				affectedWalk.add(pair.getKey());
+			}
 		}
-		
-		
+
+		// rewalk the affected walks
+		reWalk(affectedWalk);
+
 		// new nodes
 		iter = newNodes.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Node node = iter.next();
-			for(int i = 0; i<Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
-				ArrayList<Node> newSeg = new ArrayList<Node>();
-				newSeg.add(node);
-				node.addVisit(segmentId);
-				randomWalk(newSeg, node);
+			for (int i = 0; i < Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
+				RandomWalk newWalk = new RandomWalk(node);
+				node.addVisit(walkId);
+				keepWalking(newWalk, walkId, node);
+				randomWalks.put(walkId, newWalk);
+				walkId++;
 			}
 		}
-	}
-	public void updateRandomWalkSegments() {
-		for (int i = 0; i < segments.size(); i++) {
-			ArrayList<Node> seg = segments.get(i);
-			ArrayList<Node> newSeg = new ArrayList<Node>();
-			for (int j = 0; j < seg.size(); j++) {
-				newSeg.add(seg.get(j));
-				if (affectedNodesByAdding.contains(seg.get(j)) || affectedNodesByRemoving.contains(seg.get(j))) {
-					if (graph.containsVertex(seg.get(j))) {
-						randomWalk(newSeg, seg.get(j));
-						segments.remove(i);
-						break;
-					} else {
-						if(j == 0) segments.remove(i);
-						else {
-							
-							randomWalk(newSeg, newSeg.get(j-1));
-							segments.remove(i);
-						}
-						break;
-					}
-				}
-
-			}
-		}
-		Iterator<Node> iter = newNodes.iterator();
-		while(iter.hasNext()) {
-			
-			Node node = iter.next();
-			for(int i = 0; i<Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
-				ArrayList<Node> newSeg = new ArrayList<Node>();
-				newSeg.add(node);
-				randomWalk(newSeg, node);
-			}
-		}
-		
 	}
 
 	public void generateSummary() {
 		long time1 = System.currentTimeMillis();
 		buildAliasSampler();
-		
+
 		long time2 = System.currentTimeMillis();
-		saveRandomWalkSegments();
-		//printSegments();
-		
-		//long time3 = System.currentTimeMillis();
-		//resetPageRank();
-		
+		sampleAllWalks();
+		// printSegments();
+
+		// long time3 = System.currentTimeMillis();
+		// resetPageRank();
+
 		long time4 = System.currentTimeMillis();
 		computePageRank();
-		//printPageRank();
-		
-		long time5= System.currentTimeMillis();
+		// printPageRank();
+
+		long time5 = System.currentTimeMillis();
 		getSubtopics();
-		
+
 		long time6 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
 		printSummary(summary);
@@ -257,24 +259,25 @@ public class IncrementalModel extends SummarizationModel {
 		affectedNodesByAdding.clear();
 		affectedNodesByRemoving.clear();
 		newNodes.clear();
-		
+
 		System.out.printf(">>>>>>>>>>>TIME FOR BUILDING ALIAS SAMPLER: %d\n", (time2 - time1));
 		System.out.printf(">>>>>>>>>>>TIME FOR RANDOM WALK AND STORING SEGMENTS: %d\n", (time4 - time2));
 		System.out.printf(">>>>>>>>>>>TIME FOR COMPUTING PAGERANK OF ALL NODES: %d\n", (time5 - time4));
 		System.out.printf(">>>>>>>>>>>TIME FOR GETTING SUBTOPICS: %d\n", (time6 - time5));
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time7 - time6));
-		
+
 	}
 
 	public void resetPageRank() {
 		Set<Node> nodesInGraph = graph.vertexSet();
 		Iterator<Node> iter = nodesInGraph.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Node node = iter.next();
 			node.resetSegments();
 			node.updatePageRank(0);
 		}
 	}
+
 	public void printSummary(List<String> listOfTweets) {
 		System.out.println("...................FINAL SUMMARY....................");
 		for (int i = 0; i < listOfTweets.size(); i++) {
@@ -291,12 +294,12 @@ public class IncrementalModel extends SummarizationModel {
 		}
 	}
 
-	public void printSegments() {
-		for (int i = 0; i < segments.size(); i++) {
+	public void printRandomWalks() {
+		for (int i = 0; i < randomWalks.size(); i++) {
 			System.out.printf("%d. ", i);
-			for (int j = 0; j < segments.get(i).size(); j++) {
-				System.out.printf(" %s ", segments.get(i).get(j));
-			}
+			// for (int j = 0; j < randomWalks.get(i).size(); j++) {
+			// System.out.printf(" %s ", randomWalks.get(i).get(j));
+			// }
 			System.out.println();
 		}
 	}

@@ -27,8 +27,8 @@ public class SummarizationModel {
 	protected HashSet<Node> affectedNodesByAdding;
 	protected HashSet<Node> affectedNodesByRemoving;
 	protected HashSet<Node> newNodes;
-	protected HashMap<Integer, ArrayList<Node>> segments;
-	protected int segmentId;
+	protected HashMap<Integer, RandomWalk> randomWalks;
+	protected int walkId;
 	protected Set<Node> subtopics;
 
 	protected Random rand;
@@ -43,8 +43,8 @@ public class SummarizationModel {
 		newNodes = new HashSet<Node>();
 		candidates = new ArrayList<Candidate>();
 
-		segments = new HashMap<Integer, ArrayList<Node>>();
-		segmentId = 0;
+		randomWalks = new HashMap<Integer, RandomWalk>();
+		walkId = 0;
 
 		subtopics = new HashSet<Node>();
 		rand = new Random();
@@ -52,8 +52,9 @@ public class SummarizationModel {
 
 	public void getSubtopics() {
 		HashSet<Node> nodeSet = new HashSet<Node>();
-		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added into sub-topic set
-		//Scanner scan = new Scanner(System.in);
+		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added
+												// into sub-topic set
+		// Scanner scan = new Scanner(System.in);
 		double utility = Double.MAX_VALUE;
 		double sumOfUtility = 0;
 		HashSet<Node> coveredSet = new HashSet<Node>();
@@ -131,12 +132,12 @@ public class SummarizationModel {
 		// importantTweets: save all tweets in the final summary
 		HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
 		HashSet<String> tweets = new HashSet<String>(); // avoid
-																	// adding
-																	// similar
-																	// sentences
-																	// in the
-																	// final
-																	// summary
+														// adding
+														// similar
+														// sentences
+														// in the
+														// final
+														// summary
 		while (iter.hasNext()) {
 			Node node = iter.next();
 			for (Tweet t : node.getTweets()) {
@@ -302,29 +303,24 @@ public class SummarizationModel {
 
 	}
 
-	public void saveRandomWalkSegments() {
+	public void sampleAllWalks() {
 		Set<Node> nodeSet = graph.vertexSet();
 		Iterator<Node> iter = nodeSet.iterator();
 		while (iter.hasNext()) {
 			Node node = iter.next();
-
-			int i = 0;
-			while (i < Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE) {
-
-				ArrayList<Node> seg = new ArrayList<Node>();
-				seg.add(node);
-				node.addVisit(segmentId);
-				randomWalk(seg, node);
-
-				i++;
+			for (int i = 0; i < Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
+				RandomWalk walk = new RandomWalk(node);
+				node.addVisit(walkId);
+				keepWalking(walk, walkId, node);
+				randomWalks.put(walkId, walk);
+				walkId++;
 			}
 		}
 	}
 
-	public void randomWalk(ArrayList<Node> seg, Node node) {
+	public void keepWalking(RandomWalk walk, int w, Node node) {
 		Node currNode = node;
-
-		int length = seg.size();
+		int length = walk.length();
 		while (length < Configure.RANDOM_WALK_LENGTH) {
 			double x = rand.nextDouble();
 			if (x < Configure.DAMPING_FACTOR || currNode.getWeightsOfOutgoingNodes().size() == 0) {
@@ -333,17 +329,17 @@ public class SummarizationModel {
 
 			DefaultWeightedEdge outgoingEdge = currNode.sampleOutgoingEdges();
 			Node nextNode = graph.getEdgeTarget(outgoingEdge);
-			nextNode.addVisit(segmentId);
-			seg.add(nextNode);
+			nextNode.addVisit(w);
+			walk.addVisitedNode(nextNode);
 			currNode = nextNode;
 		}
-		segments.put(segmentId++, seg);
+		// return walk;
 	}
 
 	public void computePageRank() {
 		int nTotalVisits = 0;
-		Iterator<Node> iter  = wordNodeMap.values().iterator();
-		while(iter.hasNext()) {
+		Iterator<Node> iter = wordNodeMap.values().iterator();
+		while (iter.hasNext()) {
 			nTotalVisits += iter.next().getNumberOfVisits();
 		}
 
@@ -353,10 +349,12 @@ public class SummarizationModel {
 		while (iter.hasNext()) {
 			Node node = iter.next();
 			/*
-			 * double pageRankScore = node.getSegments() / (wordNodeMap.values().size()
-			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE / Configure.DAMPING_FACTOR); //
-			 * System.out.println(node + "\t" + node.getSegments() + "\t" // +
-			 * wordNodeMap.size() * // Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
+			 * double pageRankScore = node.getSegments() /
+			 * (wordNodeMap.values().size()
+			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE /
+			 * Configure.DAMPING_FACTOR); // System.out.println(node + "\t" +
+			 * node.getSegments() + "\t" // + wordNodeMap.size() * //
+			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
 			 * 
 			 */
 			double pageRankScore = ((double) node.getNumberOfVisits()) / nTotalVisits;

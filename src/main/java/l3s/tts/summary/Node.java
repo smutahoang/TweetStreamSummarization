@@ -15,8 +15,8 @@ public class Node {
 	private String nodeName;
 	private double pageRank;
 	private int numberofVisits;
-	private HashMap<Integer, Integer> segmentVisitMap;// map from segmentId to
-														// #visits
+	private HashMap<Integer, Integer> walkVisitMap;// map from walkId to
+													// #visits
 	private HashMap<DefaultWeightedEdge, Double> weightsOfOutgoingNodes;
 	private AliasSample alias;
 	private HashSet<Tweet> listOfTweets;
@@ -62,7 +62,7 @@ public class Node {
 	}
 
 	public void resetSegments() {
-		segmentVisitMap.clear();
+		walkVisitMap.clear();
 		numberofVisits = 0;
 	}
 
@@ -86,7 +86,7 @@ public class Node {
 		numberofVisits = 0;
 		pageRank = 0;
 		listOfTweets = new HashSet<Tweet>();
-		segmentVisitMap = new HashMap<Integer, Integer>();
+		walkVisitMap = new HashMap<Integer, Integer>();
 
 	}
 
@@ -115,24 +115,30 @@ public class Node {
 		return nodeName;
 	}
 
-	public void increaseSegments() {
+	public void increaseVisits() {
 		numberofVisits++;
 	}
-	
+
 	public int getNumberOfVisits() {
 		return numberofVisits;
 	}
 
-	public void addVisit(int segmentId) {
-		if (segmentVisitMap.containsKey(segmentId)) {
-			segmentVisitMap.put(segmentId, segmentVisitMap.get(segmentId) + 1);
+	public void addVisit(int walkId) {
+		if (walkVisitMap.containsKey(walkId)) {
+			walkVisitMap.put(walkId, walkVisitMap.get(walkId) + 1);
 		} else {
-			segmentVisitMap.put(segmentId, 1);
+			walkVisitMap.put(walkId, 1);
 		}
 		numberofVisits++;
 	}
 
-	public void removeSegment(int segmentId) {
-		numberofVisits -= segmentVisitMap.get(segmentId);
+	public void removeWalk(int walkId) {
+		if (walkVisitMap.containsKey(walkId)) {
+			numberofVisits -= walkVisitMap.remove(walkId);
+		}
+	}
+
+	public HashMap<Integer, Integer> getVisistedWalk() {
+		return walkVisitMap;
 	}
 }
