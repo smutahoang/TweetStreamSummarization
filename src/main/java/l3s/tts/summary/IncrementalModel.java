@@ -1,5 +1,6 @@
 package l3s.tts.summary;
 
+import java.awt.geom.AffineTransform;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -99,7 +100,7 @@ public class IncrementalModel extends SummarizationModel {
 		updateRandomWalkSegments();
 		
 		long time4 = System.currentTimeMillis();
-		resetPageRank();
+		//resetPageRank();
 		
 		long time5 = System.currentTimeMillis();
 		computePageRank();
@@ -163,6 +164,36 @@ public class IncrementalModel extends SummarizationModel {
 		System.out.printf("\n.................NUMBER OF AFFECTED NODES BY REMOVING: %d\n", affectedNodesByRemoving.size());*/
 	}
 
+	
+	public void updateRandomWalkSegments1() {
+		
+		// affected node by adding
+		Iterator<Node> iter = affectedNodesByAdding.iterator();
+		while(iter.hasNext()) {
+			Node node = iter.next();
+			
+		}
+		
+		// affected nodes by removing
+		iter = affectedNodesByRemoving.iterator();
+		while(iter.hasNext()) {
+			Node node = iter.next();
+			//if
+		}
+		
+		
+		// new nodes
+		iter = newNodes.iterator();
+		while(iter.hasNext()) {
+			Node node = iter.next();
+			for(int i = 0; i<Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
+				ArrayList<Node> newSeg = new ArrayList<Node>();
+				newSeg.add(node);
+				node.addVisit(segmentId);
+				randomWalk(newSeg, node);
+			}
+		}
+	}
 	public void updateRandomWalkSegments() {
 		for (int i = 0; i < segments.size(); i++) {
 			ArrayList<Node> seg = segments.get(i);

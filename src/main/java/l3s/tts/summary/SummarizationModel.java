@@ -8,7 +8,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -28,7 +27,8 @@ public class SummarizationModel {
 	protected HashSet<Node> affectedNodesByAdding;
 	protected HashSet<Node> affectedNodesByRemoving;
 	protected HashSet<Node> newNodes;
-	protected List<ArrayList<Node>> segments;
+	protected HashMap<Integer, ArrayList<Node>> segments;
+	protected int segmentId;
 	protected Set<Node> subtopics;
 
 	protected Random rand;
@@ -43,7 +43,8 @@ public class SummarizationModel {
 		newNodes = new HashSet<Node>();
 		candidates = new ArrayList<Candidate>();
 
-		segments = new ArrayList<ArrayList<Node>>();
+		segments = new HashMap<Integer, ArrayList<Node>>();
+		segmentId = 0;
 
 		subtopics = new HashSet<Node>();
 		rand = new Random();
@@ -51,8 +52,8 @@ public class SummarizationModel {
 
 	public void getSubtopics() {
 		HashSet<Node> nodeSet = new HashSet<Node>();
-		nodeSet.addAll(wordNodeMap.values());
-		Scanner scan = new Scanner(System.in);
+		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added into sub-topic set
+		//Scanner scan = new Scanner(System.in);
 		double utility = Double.MAX_VALUE;
 		double sumOfUtility = 0;
 		HashSet<Node> coveredSet = new HashSet<Node>();
@@ -118,7 +119,7 @@ public class SummarizationModel {
 		while (iter.hasNext()) {
 			Node node = iter.next();
 			for (Tweet t : node.getTweets()) {
-				importantTweets.put(t, computeTweetScore(t));
+				importantTweets.put(t, computeTweetScore(t.getTerms(preprocessingUtils)));
 			}
 		}
 		return importantTweets;
@@ -129,7 +130,7 @@ public class SummarizationModel {
 		Iterator<Node> iter = subtopics.iterator();
 		// importantTweets: save all tweets in the final summary
 		HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
-		HashSet<List<String>> tweets = new HashSet<List<String>>(); // avoid
+		HashSet<String> tweets = new HashSet<String>(); // avoid
 																	// adding
 																	// similar
 																	// sentences
@@ -140,8 +141,15 @@ public class SummarizationModel {
 			Node node = iter.next();
 			for (Tweet t : node.getTweets()) {
 				List<String> terms = t.getTerms(preprocessingUtils);
-				if (tweets.add(terms))
-					importantTweets.put(t, computeTweetScore(t));
+
+				StringBuilder builder = new StringBuilder();
+				for (String term : terms) {
+					builder.append(term);
+					builder.append(" ");
+				}
+				String tweetText = builder.toString().trim();
+				if (tweets.add(tweetText))
+					importantTweets.put(t, computeTweetScore(terms));
 			}
 		}
 
@@ -175,13 +183,13 @@ public class SummarizationModel {
 		List<String> topTweets = new ArrayList<String>();
 		// importantTweets: save all tweets in the final summary
 
-		HashSet<List<String>> tweets = new HashSet<List<String>>(); // avoid
-																	// adding
-																	// similar
-																	// sentences
-																	// in the
-																	// final
-																	// summary
+		HashSet<String> tweets = new HashSet<String>(); // avoid
+														// adding
+														// similar
+														// sentences
+														// in the
+														// final
+														// summary
 
 		// for each node, iterate all tweets that contains the node
 		while (iter.hasNext()) {
@@ -189,9 +197,18 @@ public class SummarizationModel {
 			HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>();
 			for (Tweet t : node.getTweets()) {
 				List<String> terms = t.getTerms(preprocessingUtils);
-				if (tweets.add(terms))
-					importantTweets.put(t, computeTweetScore(t));
+
+				StringBuilder builder = new StringBuilder();
+				for (String term : terms) {
+					builder.append(term);
+					builder.append(" ");
+				}
+				String tweetText = builder.toString().trim();
+
+				if (tweets.add(tweetText))
+					importantTweets.put(t, computeTweetScore(terms));
 			}
+
 			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
 			for (Map.Entry<Tweet, Double> tweet : importantTweets.entrySet()) {
 				String text = tweet.getKey().getText();
@@ -217,8 +234,8 @@ public class SummarizationModel {
 
 	}
 
-	public double computeTweetScore(Tweet tweet) {
-		List<String> terms = tweet.getTerms(preprocessingUtils);
+	public double computeTweetScore(List<String> terms) {
+		// List<String> terms = tweet.getTerms(preprocessingUtils);
 		double score = 0;
 		for (int i = 0; i < terms.size(); i++) {
 			Node node = wordNodeMap.get(terms.get(i));
@@ -296,6 +313,7 @@ public class SummarizationModel {
 
 				ArrayList<Node> seg = new ArrayList<Node>();
 				seg.add(node);
+				node.addVisit(segmentId);
 				randomWalk(seg, node);
 
 				i++;
@@ -315,41 +333,33 @@ public class SummarizationModel {
 
 			DefaultWeightedEdge outgoingEdge = currNode.sampleOutgoingEdges();
 			Node nextNode = graph.getEdgeTarget(outgoingEdge);
+			nextNode.addVisit(segmentId);
 			seg.add(nextNode);
 			currNode = nextNode;
 		}
-		segments.add(seg);
+		segments.put(segmentId++, seg);
 	}
 
 	public void computePageRank() {
 		int nTotalVisits = 0;
-		for (int i = 0; i < segments.size(); i++) {
-			for (int j = 0; j < segments.get(i).size(); j++) {
-				Node node = segments.get(i).get(j);
-				/*
-				 * if (segments.get(i).indexOf(node) == j) // only increase in
-				 * the // first appearing of // the node in the // segment
-				 */
-				node.increaseSegments();
-				nTotalVisits++;
-			}
+		Iterator<Node> iter  = wordNodeMap.values().iterator();
+		while(iter.hasNext()) {
+			nTotalVisits += iter.next().getNumberOfVisits();
 		}
 
 		// iter all nodes in the graph and compute PageRank
-		Iterator<Node> iter = wordNodeMap.values().iterator();
+		iter = wordNodeMap.values().iterator();
 
 		while (iter.hasNext()) {
 			Node node = iter.next();
 			/*
-			 * double pageRankScore = node.getSegments() /
-			 * (wordNodeMap.values().size()
-			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE /
-			 * Configure.DAMPING_FACTOR); // System.out.println(node + "\t" +
-			 * node.getSegments() + "\t" // + wordNodeMap.size() * //
-			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
+			 * double pageRankScore = node.getSegments() / (wordNodeMap.values().size()
+			 * Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE / Configure.DAMPING_FACTOR); //
+			 * System.out.println(node + "\t" + node.getSegments() + "\t" // +
+			 * wordNodeMap.size() * // Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE);
 			 * 
 			 */
-			double pageRankScore = ((double) node.getSegments()) / nTotalVisits;
+			double pageRankScore = ((double) node.getNumberOfVisits()) / nTotalVisits;
 			node.updatePageRank(pageRankScore);
 		}
 	}

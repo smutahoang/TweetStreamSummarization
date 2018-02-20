@@ -66,10 +66,6 @@ public class Node {
 		numberofVisits = 0;
 	}
 
-	public int getSegments() {
-		return numberofVisits;
-	}
-
 	public void updatePageRank(double pageRank) {
 		this.pageRank = pageRank;
 	}
@@ -90,6 +86,7 @@ public class Node {
 		numberofVisits = 0;
 		pageRank = 0;
 		listOfTweets = new HashSet<Tweet>();
+		segmentVisitMap = new HashMap<Integer, Integer>();
 
 	}
 
@@ -120,6 +117,10 @@ public class Node {
 
 	public void increaseSegments() {
 		numberofVisits++;
+	}
+	
+	public int getNumberOfVisits() {
+		return numberofVisits;
 	}
 
 	public void addVisit(int segmentId) {
