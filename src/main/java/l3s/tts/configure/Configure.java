@@ -12,7 +12,7 @@ public class Configure {
 	public static String STOPWORD_PATH;
 	public static String WORKING_DIRECTORY;
 
-	public static int TWEETS_IN_EACH_SUBTOPIC = 1;
+	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
 
 	public static int WINDOW_SIZE = 4;
 	public static int NUMBER_OF_RANDOM_WALK_AT_EACH_NODE = 4;
@@ -21,9 +21,11 @@ public class Configure {
 	public static int L_EXPANSION = 1;
 	public static double MAGINAL_UTILITY = 0.015;
 	public static int MAX_SUMMARIES = 5;
+	public static double JACCARD_THRESOLD = 0.5;
+	public static int TOP_K = 10;
 
 	public static boolean STOP_AT_ENDINGTOKENS = true;
-	public static int NUMBER_OF_REMOVING_TWEETS = 2;
+	public static int NUMBER_OF_REMOVING_TWEETS = 200;
 	public static boolean SIMPLE_UPDATE = false;
 
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
@@ -40,7 +42,7 @@ public class Configure {
 		// WORKING_DIRECTORY =
 		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		WORKING_DIRECTORY = "D:\\Alexandria\\summarization\\TweetStreamSummarization\\data";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 

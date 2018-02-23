@@ -1,6 +1,5 @@
 package l3s.tts.summary;
 
-import java.awt.geom.AffineTransform;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Formatter;
@@ -99,17 +98,20 @@ public class IncrementalModel extends SummarizationModel {
 		updateRandomWalks();
 
 		long time4 = System.currentTimeMillis();
-		//resetPageRank();		
-		
+		// resetPageRank();
+
 		long time5 = System.currentTimeMillis();
 		computePageRank();
-
+		
+		List<Node> topSubtopicsbyPageRank = getKTweetsBasedOnPagerank();
+		printTopNodesByPagerank(topSubtopicsbyPageRank);
+		
 		long time6 = System.currentTimeMillis();
 		getSubtopics();
 
 		long time7 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
-		printSummary(summary);
+		//printSummary(summary);
 		long time8 = System.currentTimeMillis();
 
 		subtopics.clear();
@@ -146,13 +148,16 @@ public class IncrementalModel extends SummarizationModel {
 						double weight = graph.getEdgeWeight(edge);
 						if (weight == 1) {
 							graph.removeEdge(edge);
+							source.setWeightOfOutgoingNodes(edge, 0); // update weight for outgoing edges of source node
 						} else {
 							graph.setEdgeWeight(edge, weight - tweet.getWeight());
+							source.setWeightOfOutgoingNodes(edge, weight - tweet.getWeight()); //update weight for outgoing edges of source node
 						}
+						
 
 					}
 				}
-				// removing terms if needed
+				// removing terms if need
 				if (graph.edgesOf(source).size() == 0) {
 					graph.removeVertex(source);
 					wordNodeMap.remove(terms.get(j));
@@ -246,14 +251,18 @@ public class IncrementalModel extends SummarizationModel {
 
 		long time4 = System.currentTimeMillis();
 		computePageRank();
+		long time5 = System.currentTimeMillis();
+		// print top k based on pagerank
+		List<Node> topSubtopicsbyPageRank = getKTweetsBasedOnPagerank();
+		printTopNodesByPagerank(topSubtopicsbyPageRank);
 		// printPageRank();
 
-		long time5 = System.currentTimeMillis();
+		time5 = System.currentTimeMillis();
 		getSubtopics();
 
 		long time6 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
-		printSummary(summary);
+		//printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
 		affectedNodesByAdding.clear();
@@ -266,6 +275,14 @@ public class IncrementalModel extends SummarizationModel {
 		System.out.printf(">>>>>>>>>>>TIME FOR GETTING SUBTOPICS: %d\n", (time6 - time5));
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time7 - time6));
 
+	}
+	
+	public void printTopNodesByPagerank(List<Node> nodeList) {
+		System.out.println(".....................TOP NODES BY PAGERANK.............\n");
+		for(int i = nodeList.size()-1; i>=0; i--) {
+			System.out.printf("Pagerank: %f, %s\n", nodeList.get(i).getPageRank(), nodeList.get(i).getNodeName());
+		}
+		System.out.println(".......................................................\n");
 	}
 
 	public void resetPageRank() {
