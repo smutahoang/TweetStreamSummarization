@@ -102,16 +102,16 @@ public class IncrementalModel extends SummarizationModel {
 
 		long time5 = System.currentTimeMillis();
 		computePageRank();
-		
-		List<Node> topSubtopicsbyPageRank = getKTweetsBasedOnPagerank();
+
+		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank();
 		printTopNodesByPagerank(topSubtopicsbyPageRank);
-		
+
 		long time6 = System.currentTimeMillis();
 		getSubtopics();
 
 		long time7 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
-		//printSummary(summary);
+		// printSummary(summary);
 		long time8 = System.currentTimeMillis();
 
 		subtopics.clear();
@@ -132,9 +132,12 @@ public class IncrementalModel extends SummarizationModel {
 		int numberOfRemovedNodes = 0;
 		for (int i = 0; i < Configure.NUMBER_OF_REMOVING_TWEETS; i++) {
 			Tweet tweet = recentTweets.removeFirst();
+
 			List<String> terms = tweet.getTerms(preprocessingUtils);
 			for (int j = 0; j < terms.size(); j++) {
 				Node source = wordNodeMap.get(terms.get(j));
+				if (source == null)
+					continue;
 				// removing the tweets
 				source.removeTweet(tweet);
 				affectedNodesByRemoving.add(source);
@@ -142,25 +145,32 @@ public class IncrementalModel extends SummarizationModel {
 				// System.out.println(terms.get(j) +"\t" +
 				// source.getNodeName());
 				for (int k = 1; k < Configure.WINDOW_SIZE; k++) {
-					if (j + k < terms.size()) {
-						Node target = wordNodeMap.get(terms.get(k));
-						DefaultWeightedEdge edge = graph.getEdge(source, target);
-						double weight = graph.getEdgeWeight(edge);
-						if (weight == 1) {
-							graph.removeEdge(edge);
-							source.setWeightOfOutgoingNodes(edge, 0); // update weight for outgoing edges of source node
-						} else {
-							graph.setEdgeWeight(edge, weight - tweet.getWeight());
-							source.setWeightOfOutgoingNodes(edge, weight - tweet.getWeight()); //update weight for outgoing edges of source node
-						}
-						
+					if (j + k >= terms.size())
+						break;
 
+					//Node target = wordNodeMap.get(terms.get(j)); --> bug
+					Node target = wordNodeMap.get(terms.get(j + k));
+					DefaultWeightedEdge edge = graph.getEdge(source, target);
+					double weight = graph.getEdgeWeight(edge);
+					if (weight == 1) {
+						graph.removeEdge(edge);
+						source.setWeightOfOutgoingNodes(edge, 0); // update weight for outgoing edges of source node
+					} else {
+						graph.setEdgeWeight(edge, weight - tweet.getWeight());
+						source.setWeightOfOutgoingNodes(edge, weight - tweet.getWeight()); // update weight for outgoing
+																							// edges of source node
 					}
+
 				}
 				// removing terms if need
 				if (graph.edgesOf(source).size() == 0) {
 					graph.removeVertex(source);
 					wordNodeMap.remove(terms.get(j));
+					if (terms.get(j).equals("naacp")) {
+						System.err.println("naacp is deleted!");
+						System.err.println(tweet.getText());
+						// System.exit(-1);
+					}
 					numberOfRemovedNodes++;
 				}
 			}
@@ -253,7 +263,7 @@ public class IncrementalModel extends SummarizationModel {
 		computePageRank();
 		long time5 = System.currentTimeMillis();
 		// print top k based on pagerank
-		List<Node> topSubtopicsbyPageRank = getKTweetsBasedOnPagerank();
+		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank();
 		printTopNodesByPagerank(topSubtopicsbyPageRank);
 		// printPageRank();
 
@@ -262,7 +272,7 @@ public class IncrementalModel extends SummarizationModel {
 
 		long time6 = System.currentTimeMillis();
 		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
-		//printSummary(summary);
+		// printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
 		affectedNodesByAdding.clear();
@@ -276,10 +286,10 @@ public class IncrementalModel extends SummarizationModel {
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time7 - time6));
 
 	}
-	
+
 	public void printTopNodesByPagerank(List<Node> nodeList) {
 		System.out.println(".....................TOP NODES BY PAGERANK.............\n");
-		for(int i = nodeList.size()-1; i>=0; i--) {
+		for (int i = nodeList.size() - 1; i >= 0; i--) {
 			System.out.printf("Pagerank: %f, %s\n", nodeList.get(i).getPageRank(), nodeList.get(i).getNodeName());
 		}
 		System.out.println(".......................................................\n");

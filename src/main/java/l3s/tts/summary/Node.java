@@ -21,6 +21,20 @@ public class Node {
 	private AliasSample alias;
 	private HashSet<Tweet> listOfTweets;
 
+	
+	public Node(Random rand) {
+		// TODO Auto-generated constructor stub
+
+		weightsOfOutgoingNodes = new HashMap<DefaultWeightedEdge, Double>();
+		alias = new AliasSample(rand);
+		numberofVisits = 0;
+		pageRank = 0;
+		listOfTweets = new HashSet<Tweet>();
+		walkVisitMap = new HashMap<Integer, Integer>();
+
+	} 
+	
+	
 	public void addTweet(Tweet tweet) {
 		listOfTweets.add(tweet);
 	}
@@ -78,17 +92,6 @@ public class Node {
 		return alias;
 	}
 
-	public Node(Random rand) {
-		// TODO Auto-generated constructor stub
-
-		weightsOfOutgoingNodes = new HashMap<DefaultWeightedEdge, Double>();
-		alias = new AliasSample(rand);
-		numberofVisits = 0;
-		pageRank = 0;
-		listOfTweets = new HashSet<Tweet>();
-		walkVisitMap = new HashMap<Integer, Integer>();
-
-	}
 
 	public HashSet<Tweet> getTweets() {
 		return listOfTweets;

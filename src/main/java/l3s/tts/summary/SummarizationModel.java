@@ -51,7 +51,7 @@ public class SummarizationModel {
 		rand = new Random();
 	}
 
-	public List<Node> getKTweetsBasedOnPagerank() {
+	public List<Node> getKSubtopicsBasedOnPagerank() {
 		List<Node> topNodes = new ArrayList<Node>();
 
 		Iterator<Node> iter = graph.vertexSet().iterator();
@@ -79,6 +79,8 @@ public class SummarizationModel {
 	}
 
 	public void getSubtopics() {
+
+		
 		HashSet<Node> nodeSet = new HashSet<Node>();
 		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added
 												// into sub-topic set
@@ -92,7 +94,7 @@ public class SummarizationModel {
 			double max = 0;
 			// iterate all node that havent added into subtopic set to find a
 			// node with the highest coverage
-			HashSet<Node> maxCoveredSetByCurrNode = new HashSet<Node>();
+			HashSet<Node> coveredSetbyBestNode = new HashSet<Node>();
 			while (iter.hasNext()) {
 				// find node with the highest coverage
 				Node node = iter.next();
@@ -127,7 +129,7 @@ public class SummarizationModel {
 				if (coverageScore > max) {
 					max = coverageScore;
 					bestNode = node;
-					maxCoveredSetByCurrNode = expansionSetOfCurrNode;
+					coveredSetbyBestNode = expansionSetOfCurrNode;
 				}
 			}
 			if (utility < Configure.MAGINAL_UTILITY)
@@ -140,10 +142,10 @@ public class SummarizationModel {
 
 			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
 
-			System.out.printf("%s: ", bestNode.getNodeName());
+
 			Set<DefaultWeightedEdge> edges = graph.edgesOf(bestNode);
 			Iterator<DefaultWeightedEdge> iter1 = edges.iterator();
-			System.out.printf("CoveredSet: %d", coveredSet.size());
+			System.out.printf("CoveredSet: %d\n", coveredSet.size());
 			/*
 			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next(); Node node =
 			 * graph.getEdgeSource(edge); if(node.equals(bestNode)) node =
@@ -152,8 +154,8 @@ public class SummarizationModel {
 			 * //if(!coveredSet.contains(node)) System.out.printf("%s, ",
 			 * node.getNodeName()); }
 			 */
-			System.out.println("\n");
-			coveredSet.addAll(maxCoveredSetByCurrNode);
+	
+			coveredSet.addAll(coveredSetbyBestNode);
 			coveredSet.add(bestNode);
 		}
 	}
@@ -168,24 +170,26 @@ public class SummarizationModel {
 		HashMap<String, Tweet> topTweetMap = new HashMap<String, Tweet>();
 
 		// HashSet<List<String>> topTweetSet = new HashSet<List<String>>();
-
+		
 		// for each node, iterate all tweets that contains the node
 		while (iter.hasNext()) {
 			Node node = iter.next();
-
+			
 			System.out.printf("\n>>>>>>>>>>>>>>>%s\n", node.getNodeName());
 
 			HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>(); // get tweets containing the node
 			for (Tweet t : node.getTweets()) {
 				HashSet<String> terms = new HashSet<String>();
+				
 				terms.addAll(t.getTerms(preprocessingUtils));
-
+				
 				// if(topTweetSet.add(t.getTerms(preprocessingUtils))) {
 				if (shouldAddANewTweet(t, new HashSet<Tweet>(topTweetMap.values())) ) {
 					importantTweets.put(t, computeTweetScore(terms));
 					textTweetMap.put(t.getText(), t);
 				}
 			}
+			
 
 			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
 			HashMap<String, Tweet> queueTweetMap = new HashMap<String, Tweet>();
@@ -216,7 +220,7 @@ public class SummarizationModel {
 				topTweetMap.put(text, textTweetMap.get(text));
 				System.out.println(text);
 			}
-		}
+		} 
 
 		return topTweets;
 
@@ -250,7 +254,11 @@ public class SummarizationModel {
 		double score = 0;
 		Iterator<String> iter = terms.iterator();
 		while (iter.hasNext()) {
-			Node node = wordNodeMap.get(iter.next());
+			String nextString = iter.next();
+			if(!wordNodeMap.containsKey(nextString)) {
+				System.err.println("err!! Doesnt contain node in the graph: " + nextString);
+			}
+			Node node = wordNodeMap.get(nextString);
 			score += node.getPageRank();
 		}
 		return score;
@@ -299,7 +307,7 @@ public class SummarizationModel {
 				// System.out.println(currNode + "\t" + nextNode);
 
 				if (edge == null) {
-					if (currNode != nextNode) {
+					if (currNode != nextNode) { // should we accept a node pointing to itself
 						DefaultWeightedEdge addedEdge = graph.addEdge(currNode, nextNode);
 						graph.setEdgeWeight(addedEdge, tweet.getWeight());
 						currNode.setWeightOfOutgoingNodes(addedEdge, tweet.getWeight());
