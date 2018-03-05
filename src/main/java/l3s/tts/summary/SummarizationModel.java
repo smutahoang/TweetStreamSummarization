@@ -5,8 +5,10 @@ import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -78,9 +80,8 @@ public class SummarizationModel {
 		return topNodes;
 	}
 
-	public void getSubtopics() {
+	public void getSubtopics_old() {
 
-		
 		HashSet<Node> nodeSet = new HashSet<Node>();
 		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added
 												// into sub-topic set
@@ -88,7 +89,7 @@ public class SummarizationModel {
 		double utility = Double.MAX_VALUE;
 		double sumOfUtility = 0;
 		HashSet<Node> coveredSet = new HashSet<Node>();
-		while (utility / sumOfUtility > Configure.MAGINAL_UTILITY) {
+		while (true) {
 			Iterator<Node> iter = nodeSet.iterator();
 			Node bestNode = null;
 			double max = 0;
@@ -132,9 +133,10 @@ public class SummarizationModel {
 					coveredSetbyBestNode = expansionSetOfCurrNode;
 				}
 			}
-			if (utility < Configure.MAGINAL_UTILITY)
-				break;
 			utility = max;
+
+			if (utility / sumOfUtility < Configure.MAGINAL_UTILITY)
+				break;
 			sumOfUtility += utility;
 			subtopics.add(bestNode);
 
@@ -142,19 +144,109 @@ public class SummarizationModel {
 
 			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
 
+			Set<DefaultWeightedEdge> edges = graph.edgesOf(bestNode);
+			Iterator<DefaultWeightedEdge> iter1 = edges.iterator();
+			System.out.printf("CoveredSet: %d\n", coveredSet.size());
+			/*
+			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next();
+			 * Node node = graph.getEdgeSource(edge); if(node.equals(bestNode))
+			 * node = graph.getEdgeTarget(edge);
+			 * 
+			 * //if(!coveredSet.contains(node)) System.out.printf("%s, ",
+			 * node.getNodeName()); }
+			 */
+
+			coveredSet.addAll(coveredSetbyBestNode);
+			coveredSet.add(bestNode);
+		}
+	}
+
+	public void getSubtopics() {
+
+		HashSet<Node> nodeSet = new HashSet<Node>();
+		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added
+												// into sub-topic set
+		// Scanner scan = new Scanner(System.in);
+		double utility = Double.MAX_VALUE;
+		double sumOfUtility = 0;
+		HashSet<Node> coveredSet = new HashSet<Node>();
+		while (true) {
+			Iterator<Node> iter = nodeSet.iterator();
+			Node bestNode = null;
+			double max = 0;
+			// iterate all node that havent added into subtopic set to find a
+			// node with the highest coverage
+			HashSet<Node> coveredSetbyBestNode = new HashSet<Node>();
+			while (iter.hasNext()) {
+				// find node with the highest coverage
+				Node node = iter.next();
+				double coverageScore = 0;
+
+				HashMap<Node, Integer> coveredNodes = new HashMap<Node, Integer>();
+				coveredNodes.put(node, 0);
+
+				Queue<Node> queue = new LinkedList<Node>();
+				queue.add(node);
+				coverageScore += node.getPageRank();
+
+				while (queue.size() > 0) {
+					Node currentNode = queue.remove();
+					int currentLevel = coveredNodes.get(currentNode);
+					if (currentLevel == Configure.L_EXPANSION) {
+						continue;
+					}
+					// get all neighbors of the current node
+					List<DefaultWeightedEdge> edges = new ArrayList<DefaultWeightedEdge>(graph.edgesOf(currentNode));
+					for (int j = 0; j < edges.size(); j++) {
+						Node n = graph.getEdgeSource(edges.get(j));
+						if (n == currentNode) {
+							n = graph.getEdgeTarget(edges.get(j));
+						}
+						if (subtopics.contains(n)) {
+							continue;
+						}
+						if (coveredSet.contains(n)) {
+							continue;
+						}
+						if (coveredNodes.containsKey(n)) {
+							continue;
+						} else {
+							coveredNodes.put(n, currentLevel + 1);
+							queue.add(n);
+							coverageScore += n.getPageRank();
+						}
+
+					}
+				}
+				if (coverageScore > max) {
+					max = coverageScore;
+					bestNode = node;
+					coveredSetbyBestNode.addAll(coveredNodes.keySet());
+				}
+			}
+			utility = max;
+
+			if (utility / sumOfUtility < Configure.MAGINAL_UTILITY)
+				break;
+			sumOfUtility += utility;
+			subtopics.add(bestNode);
+
+			nodeSet.remove(bestNode);
+
+			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
 
 			Set<DefaultWeightedEdge> edges = graph.edgesOf(bestNode);
 			Iterator<DefaultWeightedEdge> iter1 = edges.iterator();
 			System.out.printf("CoveredSet: %d\n", coveredSet.size());
 			/*
-			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next(); Node node =
-			 * graph.getEdgeSource(edge); if(node.equals(bestNode)) node =
-			 * graph.getEdgeTarget(edge);
+			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next();
+			 * Node node = graph.getEdgeSource(edge); if(node.equals(bestNode))
+			 * node = graph.getEdgeTarget(edge);
 			 * 
 			 * //if(!coveredSet.contains(node)) System.out.printf("%s, ",
 			 * node.getNodeName()); }
 			 */
-	
+
 			coveredSet.addAll(coveredSetbyBestNode);
 			coveredSet.add(bestNode);
 		}
@@ -170,45 +262,48 @@ public class SummarizationModel {
 		HashMap<String, Tweet> topTweetMap = new HashMap<String, Tweet>();
 
 		// HashSet<List<String>> topTweetSet = new HashSet<List<String>>();
-		
+
 		// for each node, iterate all tweets that contains the node
 		while (iter.hasNext()) {
 			Node node = iter.next();
-			
+
 			System.out.printf("\n>>>>>>>>>>>>>>>%s\n", node.getNodeName());
 
-			HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>(); // get tweets containing the node
+			HashMap<Tweet, Double> importantTweets = new HashMap<Tweet, Double>(); // get
+																					// tweets
+																					// containing
+																					// the
+																					// node
 			for (Tweet t : node.getTweets()) {
 				HashSet<String> terms = new HashSet<String>();
-				
+
 				terms.addAll(t.getTerms(preprocessingUtils));
-				
+
 				// if(topTweetSet.add(t.getTerms(preprocessingUtils))) {
-				if (shouldAddANewTweet(t, new HashSet<Tweet>(topTweetMap.values())) ) {
+				if (shouldAddANewTweet(t, new HashSet<Tweet>(topTweetMap.values()))) {
 					importantTweets.put(t, computeTweetScore(terms));
 					textTweetMap.put(t.getText(), t);
 				}
 			}
-			
 
 			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
 			HashMap<String, Tweet> queueTweetMap = new HashMap<String, Tweet>();
 			for (Map.Entry<Tweet, Double> tweet : importantTweets.entrySet()) {
 				String text = tweet.getKey().getText();
 				Double score = tweet.getValue();
-				if(!shouldAddANewTweet(tweet.getKey(), new HashSet<Tweet>(queueTweetMap.values())))
+				if (!shouldAddANewTweet(tweet.getKey(), new HashSet<Tweet>(queueTweetMap.values())))
 					continue;
 				if (queue.size() < Configure.TWEETS_IN_EACH_SUBTOPIC) {
 					queue.add(new KeyValue_Pair(text, score));
-					
+
 					queueTweetMap.put(text, tweet.getKey());
 				} else {
 					KeyValue_Pair head = queue.peek();
-					
+
 					if (head.getDoubleValue() < score) {
 						KeyValue_Pair removedTweet = queue.poll();
 						queue.add(new KeyValue_Pair(text, score));
-						
+
 						queueTweetMap.remove(removedTweet.getStrKey());
 						queueTweetMap.put(text, tweet.getKey());
 					}
@@ -220,7 +315,7 @@ public class SummarizationModel {
 				topTweetMap.put(text, textTweetMap.get(text));
 				System.out.println(text);
 			}
-		} 
+		}
 
 		return topTweets;
 
@@ -241,12 +336,12 @@ public class SummarizationModel {
 
 	private double getJaccardScore(List<String> listOfTerms1, List<String> listOfTerms2) {
 		HashSet<String> union = new HashSet<String>();
-		
+
 		union.addAll(listOfTerms1);
 		union.addAll(listOfTerms2);
-		
 
-		return (union.size() > 0) ? (double) (listOfTerms1.size() + listOfTerms2.size() - union.size()) / union.size() : 0;
+		return (union.size() > 0) ? (double) (listOfTerms1.size() + listOfTerms2.size() - union.size()) / union.size()
+				: 0;
 	}
 
 	public double computeTweetScore(HashSet<String> terms) {
@@ -255,7 +350,7 @@ public class SummarizationModel {
 		Iterator<String> iter = terms.iterator();
 		while (iter.hasNext()) {
 			String nextString = iter.next();
-			if(!wordNodeMap.containsKey(nextString)) {
+			if (!wordNodeMap.containsKey(nextString)) {
 				System.err.println("err!! Doesnt contain node in the graph: " + nextString);
 			}
 			Node node = wordNodeMap.get(nextString);
@@ -307,7 +402,8 @@ public class SummarizationModel {
 				// System.out.println(currNode + "\t" + nextNode);
 
 				if (edge == null) {
-					if (currNode != nextNode) { // should we accept a node pointing to itself
+					if (currNode != nextNode) { // should we accept a node
+												// pointing to itself
 						DefaultWeightedEdge addedEdge = graph.addEdge(currNode, nextNode);
 						graph.setEdgeWeight(addedEdge, tweet.getWeight());
 						currNode.setWeightOfOutgoingNodes(addedEdge, tweet.getWeight());

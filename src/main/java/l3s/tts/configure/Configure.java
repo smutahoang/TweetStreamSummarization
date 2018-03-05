@@ -42,7 +42,7 @@ public class Configure {
 		// WORKING_DIRECTORY =
 		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "D:\\Alexandria\\summarization\\TweetStreamSummarization\\data";
+		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 
