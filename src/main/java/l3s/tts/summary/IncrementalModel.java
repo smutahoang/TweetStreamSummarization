@@ -1,7 +1,6 @@
 package l3s.tts.summary;
 
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -105,12 +104,17 @@ public class IncrementalModel extends SummarizationModel {
 
 		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank();
 		printTopNodesByPagerank(topSubtopicsbyPageRank);
+		
+		
 
 		long time6 = System.currentTimeMillis();
 		getSubtopics();
 
 		long time7 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
+		List<String> summary = getTopKTweetsForEachSubtopicAsASummary(subtopics);
+		
+		//System.out.println("...................TOP TWEETS HAVING THE HIGHEST PAGERANK SCORES.............");
+		//getTopKTweetsForEachSubtopicAsASummary(new HashSet<Node>(topSubtopicsbyPageRank));
 		// printSummary(summary);
 		long time8 = System.currentTimeMillis();
 
@@ -148,7 +152,7 @@ public class IncrementalModel extends SummarizationModel {
 					if (j + k >= terms.size())
 						break;
 
-					//Node target = wordNodeMap.get(terms.get(j)); --> bug
+					// Node target = wordNodeMap.get(terms.get(j)); --> bug
 					Node target = wordNodeMap.get(terms.get(j + k));
 					DefaultWeightedEdge edge = graph.getEdge(source, target);
 					double weight = graph.getEdgeWeight(edge);
@@ -271,7 +275,7 @@ public class IncrementalModel extends SummarizationModel {
 		getSubtopics();
 
 		long time6 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsForEachSubtopicAsASummary();
+		List<String> summary = getTopKTweetsForEachSubtopicAsASummary(subtopics);
 		// printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
@@ -289,8 +293,9 @@ public class IncrementalModel extends SummarizationModel {
 
 	public void printTopNodesByPagerank(List<Node> nodeList) {
 		System.out.println(".....................TOP NODES BY PAGERANK.............\n");
-		for (int i = nodeList.size() - 1; i >= 0; i--) {
-			System.out.printf("Pagerank: %f, %s\n", nodeList.get(i).getPageRank(), nodeList.get(i).getNodeName());
+		for(int i = nodeList.size() - 1; i>0; i--) {
+			
+			System.out.printf("PageRank: %f, %s\n", nodeList.get(i).getPageRank(), nodeList.get(i).getNodeName());
 		}
 		System.out.println(".......................................................\n");
 	}

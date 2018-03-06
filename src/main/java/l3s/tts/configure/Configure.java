@@ -21,7 +21,7 @@ public class Configure {
 	public static int L_EXPANSION = 1;
 	public static double MAGINAL_UTILITY = 0.015;
 	public static int MAX_SUMMARIES = 5;
-	public static double JACCARD_THRESOLD = 0.5;
+	public static double JACCARD_THRESOLD = 0.3;
 	public static int TOP_K = 10;
 
 	public static boolean STOP_AT_ENDINGTOKENS = true;
@@ -39,10 +39,9 @@ public class Configure {
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
-		// WORKING_DIRECTORY =
-		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
+		 WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		//WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 
