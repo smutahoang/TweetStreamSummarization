@@ -3,6 +3,7 @@ package l3s.tts.summary;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 
 import org.jgrapht.graph.DefaultWeightedEdge;
@@ -17,43 +18,50 @@ public class Node {
 	private int numberofVisits;
 	private HashMap<Integer, Integer> walkVisitMap;// map from walkId to
 													// #visits
-	private HashMap<DefaultWeightedEdge, Double> weightsOfOutgoingNodes;
+	private HashMap<DefaultWeightedEdge, Double> weightsOfOutgoingEdges;
+	private ArrayList<DefaultWeightedEdge> outgoingEdgeIndexes;
+
 	private AliasSample alias;
 	private HashSet<Tweet> listOfTweets;
 
-	
 	public Node(Random rand) {
 		// TODO Auto-generated constructor stub
 
-		weightsOfOutgoingNodes = new HashMap<DefaultWeightedEdge, Double>();
+		weightsOfOutgoingEdges = new HashMap<DefaultWeightedEdge, Double>();
 		alias = new AliasSample(rand);
 		numberofVisits = 0;
 		pageRank = 0;
 		listOfTweets = new HashSet<Tweet>();
 		walkVisitMap = new HashMap<Integer, Integer>();
 
-	} 
-	
-	
+	}
+
 	public void addTweet(Tweet tweet) {
 		listOfTweets.add(tweet);
 	}
 
 	public HashMap<DefaultWeightedEdge, Double> getWeightsOfOutgoingNodes() {
-		return weightsOfOutgoingNodes;
+		return weightsOfOutgoingEdges;
 	}
 
 	public void setWeightOfOutgoingNodes(DefaultWeightedEdge edge, double weight) {
 
 		if (weight == 0)
-			weightsOfOutgoingNodes.remove(edge);
+			weightsOfOutgoingEdges.remove(edge);
 		else
-			weightsOfOutgoingNodes.put(edge, weight);
+			weightsOfOutgoingEdges.put(edge, weight);
 
 	}
 
 	public void updateAliasSampler() {
-		ArrayList<Double> weights = new ArrayList<Double>(weightsOfOutgoingNodes.values());
+		outgoingEdgeIndexes = new ArrayList<DefaultWeightedEdge>();
+		ArrayList<Double> weights = new ArrayList<Double>();
+
+		for (Map.Entry<DefaultWeightedEdge, Double> pair : weightsOfOutgoingEdges.entrySet()) {
+			outgoingEdgeIndexes.add(pair.getKey());
+			weights.add(pair.getValue());
+		}
+
 		double[] distribution = new double[weights.size()];
 		double sum = 0;
 		for (int i = 0; i < weights.size(); i++) {
@@ -67,12 +75,8 @@ public class Node {
 	}
 
 	public DefaultWeightedEdge sampleOutgoingEdges() {
-
-		ArrayList<DefaultWeightedEdge> edges = new ArrayList<DefaultWeightedEdge>(weightsOfOutgoingNodes.keySet());
 		int i = alias.sample();
-
-		return edges.get(i);
-
+		return outgoingEdgeIndexes.get(i);
 	}
 
 	public void resetSegments() {
@@ -91,7 +95,6 @@ public class Node {
 	public AliasSample getAlias() {
 		return alias;
 	}
-
 
 	public HashSet<Tweet> getTweets() {
 		return listOfTweets;

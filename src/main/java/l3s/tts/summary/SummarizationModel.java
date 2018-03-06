@@ -252,6 +252,12 @@ public class SummarizationModel {
 		}
 	}
 
+	public void efficientGetSubtopics() {
+		//base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
+		// Pitfalls, Measures, and Algorithms"
+
+	}
+
 	// get top k tweets for each subtopics
 	public List<String> getTopKTweetsForEachSubtopicAsASummary(Set<Node> subtopics) {
 		Iterator<Node> iter = subtopics.iterator();
@@ -278,9 +284,9 @@ public class SummarizationModel {
 				HashSet<String> terms = new HashSet<String>();
 
 				terms.addAll(t.getTerms(preprocessingUtils));
-				
-				//if(!isRepresentativeTweetOfTheTopic(terms, node))
-				//	continue;
+
+				// if(!isRepresentativeTweetOfTheTopic(terms, node))
+				// continue;
 
 				// if(topTweetSet.add(t.getTerms(preprocessingUtils))) {
 				if (shouldAddANewTweet(t, new HashSet<Tweet>(topTweetMap.values()))) {
@@ -323,14 +329,14 @@ public class SummarizationModel {
 		return topTweets;
 
 	}
-	
+
 	private boolean isRepresentativeTweetOfTheTopic(HashSet<String> terms, Node node) {
 		Iterator<String> iter = terms.iterator();
-		while(iter.hasNext()) {
+		while (iter.hasNext()) {
 			Node currNode = wordNodeMap.get(iter.next());
-			if(currNode.getPageRank() > node.getPageRank())
+			if (currNode.getPageRank() > node.getPageRank())
 				return false;
-			
+
 		}
 		return true;
 	}
