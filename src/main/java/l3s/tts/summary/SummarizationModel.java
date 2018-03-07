@@ -17,6 +17,7 @@ import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleGraph;
 import org.w3c.dom.NodeList;
 
+import edu.stanford.nlp.io.EncodingPrintWriter.out;
 import l3s.tts.configure.Configure;
 import l3s.tts.utils.KeyValue_Pair;
 import l3s.tts.utils.Tweet;
@@ -78,87 +79,6 @@ public class SummarizationModel {
 			topNodes.add(wordNodeMap.get(text));
 		}
 		return topNodes;
-	}
-
-	public void getSubtopics_old() {
-
-		HashSet<Node> nodeSet = new HashSet<Node>();
-		nodeSet.addAll(wordNodeMap.values()); // set of nodes that havent added
-												// into sub-topic set
-		// Scanner scan = new Scanner(System.in);
-		double utility = Double.MAX_VALUE;
-		double sumOfUtility = 0;
-		HashSet<Node> coveredSet = new HashSet<Node>();
-		while (true) {
-			Iterator<Node> iter = nodeSet.iterator();
-			Node bestNode = null;
-			double max = 0;
-			// iterate all node that havent added into subtopic set to find a
-			// node with the highest coverage
-			HashSet<Node> coveredSetbyBestNode = new HashSet<Node>();
-			while (iter.hasNext()) {
-				// find node with the highest coverage
-				Node node = iter.next();
-				double coverageScore = 0;
-				List<Node> currSet = new ArrayList<Node>();
-				currSet.add(node);
-
-				// get expansion set of the current node
-				HashSet<Node> expansionSetOfCurrNode = new HashSet<Node>();
-				for (int i = 0; i < Configure.L_EXPANSION; i++) {
-					// get ith-expansion set
-					Set<Node> expansionSet = new HashSet<Node>();
-					for (Node nodeInCurrSet : currSet) {
-						List<DefaultWeightedEdge> edges = new ArrayList<DefaultWeightedEdge>(
-								graph.edgesOf(nodeInCurrSet));
-						// get all neighbors
-						for (int j = 0; j < edges.size(); j++) {
-							Node n = graph.getEdgeSource(edges.get(j));
-							if (n.equals(nodeInCurrSet))
-								n = graph.getEdgeTarget(edges.get(j));
-							if (!subtopics.contains(n) && !coveredSet.contains(n)) {
-								expansionSet.add(n);
-								coverageScore += n.getPageRank();
-
-							}
-
-						}
-					}
-					currSet = new ArrayList<Node>(expansionSet);
-					expansionSetOfCurrNode.addAll(expansionSet);
-				}
-				if (coverageScore > max) {
-					max = coverageScore;
-					bestNode = node;
-					coveredSetbyBestNode = expansionSetOfCurrNode;
-				}
-			}
-			utility = max;
-
-			if (utility / sumOfUtility < Configure.MAGINAL_UTILITY)
-				break;
-			sumOfUtility += utility;
-			subtopics.add(bestNode);
-
-			nodeSet.remove(bestNode);
-
-			System.out.printf("Utility: %f, %s\n", utility, bestNode.getNodeName());
-
-			Set<DefaultWeightedEdge> edges = graph.edgesOf(bestNode);
-			Iterator<DefaultWeightedEdge> iter1 = edges.iterator();
-			System.out.printf("CoveredSet: %d\n", coveredSet.size());
-			/*
-			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next();
-			 * Node node = graph.getEdgeSource(edge); if(node.equals(bestNode))
-			 * node = graph.getEdgeTarget(edge);
-			 * 
-			 * //if(!coveredSet.contains(node)) System.out.printf("%s, ",
-			 * node.getNodeName()); }
-			 */
-
-			coveredSet.addAll(coveredSetbyBestNode);
-			coveredSet.add(bestNode);
-		}
 	}
 
 	public void getSubtopics() {
@@ -239,9 +159,9 @@ public class SummarizationModel {
 			Iterator<DefaultWeightedEdge> iter1 = edges.iterator();
 			System.out.printf("CoveredSet: %d\n", coveredSet.size());
 			/*
-			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next();
-			 * Node node = graph.getEdgeSource(edge); if(node.equals(bestNode))
-			 * node = graph.getEdgeTarget(edge);
+			 * while(iter1.hasNext()) { DefaultWeightedEdge edge = iter1.next(); Node node =
+			 * graph.getEdgeSource(edge); if(node.equals(bestNode)) node =
+			 * graph.getEdgeTarget(edge);
 			 * 
 			 * //if(!coveredSet.contains(node)) System.out.printf("%s, ",
 			 * node.getNodeName()); }
@@ -253,9 +173,100 @@ public class SummarizationModel {
 	}
 
 	public void efficientGetSubtopics() {
-		//base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
+		// base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
 		// Pitfalls, Measures, and Algorithms"
+		HashMap<Node, Set<Node>> nodeNeighborMap = new HashMap<Node, Set<Node>>();
 
+		Set<Node> coveredNodes = new HashSet<Node>();
+
+		Set<Node> allNodes = new HashSet<Node>(wordNodeMap.values());
+		Iterator<Node> iter = allNodes.iterator();
+		Node bestNode = null;
+
+		// compute initial utility of each node and get the node with highest utility
+		while (iter.hasNext()) {
+			Node node = iter.next();
+			// save all neighbors of the current node
+			Set<Node> neighbors = new HashSet<Node>();
+			double utility = getNeighborsOfANode(node, neighbors);
+			node.setUtility(utility);
+
+			nodeNeighborMap.put(node, neighbors);
+			if (bestNode == null || (bestNode != null && bestNode.getUtility() < node.getUtility()))
+				bestNode = node;
+		}
+
+		double sumOfUtility = 0;
+		coveredNodes.add(bestNode);
+		while (true) {
+			double utility = bestNode.getUtility();
+			sumOfUtility += utility;
+			if (utility / sumOfUtility < Configure.MAGINAL_UTILITY)
+				break;
+
+			subtopics.add(bestNode);
+			allNodes.remove(bestNode);
+			coveredNodes.add(bestNode);
+			System.out.printf("Utilitly: %f, %s\n", bestNode.getUtility(), bestNode.getNodeName());
+
+			Iterator<Node> neighborsOfBestNode = nodeNeighborMap.get(bestNode).iterator();
+
+			// update utility
+			while (neighborsOfBestNode.hasNext()) {
+				Node currNode = neighborsOfBestNode.next();
+				if (!coveredNodes.contains(currNode)) {
+					Iterator<Node> neighborsOfCurrNode = nodeNeighborMap.get(currNode).iterator();
+					while (neighborsOfCurrNode.hasNext()) {
+						Node node = neighborsOfCurrNode.next();
+						node.setUtility(node.getUtility() - currNode.getPageRank() );
+						
+
+					}
+					coveredNodes.add(currNode);
+				}
+			}
+
+			// get the best node
+			Iterator<Node> iterAllCurrentNodes = allNodes.iterator();
+			bestNode = null;
+			while (iterAllCurrentNodes.hasNext()) {
+				Node node = iterAllCurrentNodes.next();
+				if (bestNode == null || (bestNode != null && bestNode.getUtility() < node.getUtility()))
+					bestNode = node;
+			}
+
+		}
+	}
+
+	public double getNeighborsOfANode(Node node, Set<Node> neighbors) {
+		HashMap<Node, Integer> neighborsLevelMap = new HashMap<Node, Integer>();
+		Queue<Node> queue = new LinkedList<Node>();
+
+		neighborsLevelMap.put(node, 0);
+		queue.add(node);
+
+		double utility = 0;
+		while (queue.size() > 0) {
+			Node head = queue.poll();
+			int currentLevel = neighborsLevelMap.get(head);
+			if (currentLevel == Configure.L_EXPANSION)
+				continue;
+			// get all neighbors
+			ArrayList<DefaultWeightedEdge> outgoingEdges = new ArrayList<DefaultWeightedEdge>(graph.edgesOf(head));
+			for (int i = 0; i < outgoingEdges.size(); i++) {
+				Node outgoingNode = graph.getEdgeSource(outgoingEdges.get(i));
+				if (head.equals(outgoingNode))
+					outgoingNode = graph.getEdgeTarget(outgoingEdges.get(i));
+				if (neighborsLevelMap.containsKey(outgoingNode))
+					continue;
+				neighborsLevelMap.put(outgoingNode, currentLevel + 1);
+				utility += outgoingNode.getPageRank();
+			}
+		}
+		// node.setUtility(utility);
+		neighbors = neighborsLevelMap.keySet();
+		// neighbors.remove(node);
+		return utility;
 	}
 
 	// get top k tweets for each subtopics

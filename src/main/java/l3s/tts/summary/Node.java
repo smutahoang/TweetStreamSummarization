@@ -16,6 +16,7 @@ public class Node {
 	private String nodeName;
 	private double pageRank;
 	private int numberofVisits;
+	private double utility;
 	private HashMap<Integer, Integer> walkVisitMap;// map from walkId to
 													// #visits
 	private HashMap<DefaultWeightedEdge, Double> weightsOfOutgoingEdges;
@@ -31,11 +32,18 @@ public class Node {
 		alias = new AliasSample(rand);
 		numberofVisits = 0;
 		pageRank = 0;
+		utility = 0;
 		listOfTweets = new HashSet<Tweet>();
 		walkVisitMap = new HashMap<Integer, Integer>();
 
 	}
-
+	public void setUtility(double utility) {
+		this.utility = utility;
+	}
+	
+	public double getUtility() {
+		return utility;
+	}
 	public void addTweet(Tweet tweet) {
 		listOfTweets.add(tweet);
 	}
