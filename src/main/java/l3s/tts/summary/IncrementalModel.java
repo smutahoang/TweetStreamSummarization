@@ -108,10 +108,9 @@ public class IncrementalModel extends SummarizationModel {
 		
 
 		long time6 = System.currentTimeMillis();
-		getSubtopics();
-
+		efficientGetSubtopics();
 		long time7 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsForEachSubtopicAsASummary(subtopics);
+		List<String> summary = getTopKDiversifiedTweetsByReducingImportantScore(subtopics);
 		
 		//System.out.println("...................TOP TWEETS HAVING THE HIGHEST PAGERANK SCORES.............");
 		//getTopKTweetsForEachSubtopicAsASummary(new HashSet<Node>(topSubtopicsbyPageRank));
@@ -272,10 +271,10 @@ public class IncrementalModel extends SummarizationModel {
 		// printPageRank();
 
 		time5 = System.currentTimeMillis();
-		getSubtopics();
+		efficientGetSubtopics();
 
 		long time6 = System.currentTimeMillis();
-		List<String> summary = getTopKTweetsForEachSubtopicAsASummary(subtopics);
+		List<String> summary = getTopKDiversifiedTweetsByReducingImportantScore(subtopics);
 		// printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
