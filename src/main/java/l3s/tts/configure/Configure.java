@@ -23,9 +23,11 @@ public class Configure {
 	public static int MAX_SUMMARIES = 5;
 	public static double JACCARD_THRESOLD = 0.3;
 	public static int TOP_K = 10;
+	
+	public static int NUMBER_OF_IGNORED_TOPICS = 3;
 
 	public static boolean STOP_AT_ENDINGTOKENS = true;
-	public static int NUMBER_OF_REMOVING_TWEETS = 200;
+	public static int NUMBER_OF_REMOVING_TWEETS = 10;
 	public static boolean SIMPLE_UPDATE = false;
 
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";

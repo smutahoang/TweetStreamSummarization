@@ -102,15 +102,17 @@ public class IncrementalModel extends SummarizationModel {
 		long time5 = System.currentTimeMillis();
 		computePageRank();
 
-		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank();
+		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank(Configure.TOP_K);
 		printTopNodesByPagerank(topSubtopicsbyPageRank);
 		
 		
 
 		long time6 = System.currentTimeMillis();
 		efficientGetSubtopics();
+		
+		checkOverlapping();
 		long time7 = System.currentTimeMillis();
-		List<String> summary = getTopKDiversifiedTweetsByReducingImportantScore(subtopics);
+		List<String> summary = getTopKDiversifiedTweetsBasedOnJaccardScore(subtopics);
 		
 		//System.out.println("...................TOP TWEETS HAVING THE HIGHEST PAGERANK SCORES.............");
 		//getTopKTweetsForEachSubtopicAsASummary(new HashSet<Node>(topSubtopicsbyPageRank));
@@ -212,9 +214,9 @@ public class IncrementalModel extends SummarizationModel {
 		HashSet<Integer> affectedWalk = new HashSet<Integer>();
 
 		// affected node by adding
-		Iterator<Node> iter = affectedNodesByAdding.iterator();
-		while (iter.hasNext()) {
-			Node node = iter.next();
+		
+		for (Node node: affectedNodesByAdding) {
+			
 			HashMap<Integer, Integer> visitedWalks = node.getVisistedWalk();
 			for (Map.Entry<Integer, Integer> pair : visitedWalks.entrySet()) {
 				affectedWalk.add(pair.getKey());
@@ -222,9 +224,9 @@ public class IncrementalModel extends SummarizationModel {
 		}
 
 		// affected nodes by removing
-		iter = affectedNodesByRemoving.iterator();
-		while (iter.hasNext()) {
-			Node node = iter.next();
+		
+		for (Node node: affectedNodesByRemoving) {
+			
 			if (affectedNodesByAdding.contains(node)) {
 				continue;
 			}
@@ -238,9 +240,9 @@ public class IncrementalModel extends SummarizationModel {
 		reWalk(affectedWalk);
 
 		// new nodes
-		iter = newNodes.iterator();
-		while (iter.hasNext()) {
-			Node node = iter.next();
+		
+		for (Node node: newNodes) {
+			
 			for (int i = 0; i < Configure.NUMBER_OF_RANDOM_WALK_AT_EACH_NODE; i++) {
 				RandomWalk newWalk = new RandomWalk(node);
 				node.addVisit(walkId);
@@ -266,15 +268,15 @@ public class IncrementalModel extends SummarizationModel {
 		computePageRank();
 		long time5 = System.currentTimeMillis();
 		// print top k based on pagerank
-		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank();
+		List<Node> topSubtopicsbyPageRank = getKSubtopicsBasedOnPagerank(Configure.TOP_K);
 		printTopNodesByPagerank(topSubtopicsbyPageRank);
 		// printPageRank();
 
 		time5 = System.currentTimeMillis();
 		efficientGetSubtopics();
-
+		checkOverlapping();
 		long time6 = System.currentTimeMillis();
-		List<String> summary = getTopKDiversifiedTweetsByReducingImportantScore(subtopics);
+		List<String> summary = getTopKDiversifiedTweetsBasedOnJaccardScore(subtopics);
 		// printSummary(summary);
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
@@ -301,9 +303,10 @@ public class IncrementalModel extends SummarizationModel {
 
 	public void resetPageRank() {
 		Set<Node> nodesInGraph = graph.vertexSet();
-		Iterator<Node> iter = nodesInGraph.iterator();
-		while (iter.hasNext()) {
-			Node node = iter.next();
+		
+		for (Node node: nodesInGraph) {
+
+
 			node.resetSegments();
 			node.updatePageRank(0);
 		}
@@ -318,9 +321,10 @@ public class IncrementalModel extends SummarizationModel {
 	}
 
 	public void printPageRank() {
-		Iterator<Node> iter = wordNodeMap.values().iterator();
-		while (iter.hasNext()) {
-			Node node = iter.next();
+
+
+		for (Node node: wordNodeMap.values()) {
+
 			System.out.printf("%s: %f\n", node.getNodeName(), node.getPageRank());
 		}
 	}
