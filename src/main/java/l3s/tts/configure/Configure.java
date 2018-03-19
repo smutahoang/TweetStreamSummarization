@@ -19,7 +19,7 @@ public class Configure {
 	public static int RANDOM_WALK_LENGTH = 20;
 	public static double DAMPING_FACTOR = 0.15;
 	public static int L_EXPANSION = 1;
-	public static double MAGINAL_UTILITY = 0.015;
+	public static double MAGINAL_UTILITY = 0.05;
 	public static int MAX_SUMMARIES = 5;
 	public static double JACCARD_THRESOLD = 0.3;
 	public static int TOP_K = 10;
@@ -27,7 +27,7 @@ public class Configure {
 	public static int NUMBER_OF_IGNORED_TOPICS = 3;
 
 	public static boolean STOP_AT_ENDINGTOKENS = true;
-	public static int NUMBER_OF_REMOVING_TWEETS = 10;
+	public static int NUMBER_OF_REMOVING_TWEETS = 3;
 	public static boolean SIMPLE_UPDATE = false;
 
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
@@ -36,6 +36,7 @@ public class Configure {
 
 	// minutes
 	public static int TWEET_WINDOW = 1000;
+	public final static long TIME_STEP_WIDTH = 30 * 60 * 1000;// 30 mins;
 
 	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
 

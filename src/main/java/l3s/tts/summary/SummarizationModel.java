@@ -174,6 +174,110 @@ public class SummarizationModel {
 		}
 	}
 
+	public void checkIntersection() {
+		// base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
+		// Pitfalls, Measures, and Algorithms"
+		HashMap<Node, Set<Node>> nodeNeighborMap = new HashMap<Node, Set<Node>>();
+		HashMap<Node, Boolean> nodeStatusMap = new HashMap<Node, Boolean>();
+
+		Set<Tweet> tweetsOfTopK = new HashSet<Tweet>();
+		Set<Tweet> remainingTweets = new HashSet<Tweet>();
+		Set<Node> allNodes = new HashSet<Node>(wordNodeMap.values());
+
+		// get top k by pagerank and remove
+		// List<Node> topKPagerank =
+		// getKSubtopicsBasedOnPagerank(Configure.NUMBER_OF_IGNORED_TOPICS);
+
+		Node bestNode = null;
+
+		// compute initial utility of each node and get the node with highest
+		// utility
+		for (Node node : allNodes) {
+
+			// save all neighbors of the current node
+			Set<Node> neighbors = getNeighborsOfAndUtilityANode(node);
+
+			nodeNeighborMap.put(node, neighbors);
+
+			nodeStatusMap.put(node, false);
+
+			if (bestNode == null || (bestNode != null && bestNode.getUtility() < node.getUtility())) {
+				bestNode = node;
+			}
+
+		}
+		Set<Node> removedNode = new HashSet<Node>();
+		double sumOfUtility = 0;
+		int numberOfIgnoredNodes = 1;
+		int count = 0;
+		while (true) {
+			allNodes.remove(bestNode);
+
+			System.out.printf("removed: %s, %d (#tweets)\n", bestNode, bestNode.getTweets().size());
+			if (numberOfIgnoredNodes > Configure.NUMBER_OF_IGNORED_TOPICS) {
+				// if(count<4) {
+				remainingTweets.addAll(bestNode.getTweets());
+				count++;
+				// }
+				double utility = bestNode.getUtility();
+				sumOfUtility += utility;
+				if (utility / sumOfUtility < Configure.MAGINAL_UTILITY)
+					break;
+
+				subtopics.add(bestNode);
+
+				System.out.printf("Utilitly: %f, %s\n", bestNode.getUtility(), bestNode.getNodeName());
+
+				// System.out.println(nodeNeighborMap.get(bestNode).size());
+
+				// update utility
+				for (Node currNode : nodeNeighborMap.get(bestNode)) {
+					if (currNode == bestNode) {
+						continue;
+					}
+					if (nodeStatusMap.get(bestNode) == false)
+						currNode.setUtility(currNode.getUtility() - bestNode.getPageRank() - currNode.getPageRank());
+
+					if (nodeStatusMap.get(currNode) == false) {
+						for (Node node : nodeNeighborMap.get(currNode)) {
+							if (node == currNode) {
+								continue;
+							}
+							node.setUtility(node.getUtility() - currNode.getPageRank());
+						}
+						nodeStatusMap.put(currNode, true);
+					}
+				}
+				nodeStatusMap.put(bestNode, true);
+			} else {
+				tweetsOfTopK.addAll(bestNode.getTweets());
+				removedNode.add(bestNode);
+			}
+			numberOfIgnoredNodes++;
+			// get the best node
+			bestNode = null;
+			for (Node node : allNodes) {
+
+				if (bestNode == null || (bestNode != null && bestNode.getUtility() < node.getUtility()))
+					bestNode = node;
+			}
+		}
+		System.out.println(".................................................");
+		System.out.printf("Top k: %d\n", tweetsOfTopK.size());
+		System.out.printf("4 final terms: %d\n", remainingTweets.size());
+		Set<Tweet> union = new HashSet<Tweet>();
+		union.addAll(tweetsOfTopK);
+		union.addAll(remainingTweets);
+		int intersection = (tweetsOfTopK.size() + remainingTweets.size() - union.size());
+		System.out.printf("union: %d, intersection: %d, %f, %f\n", union.size(), intersection,
+				(double) intersection / tweetsOfTopK.size(), (double) intersection / remainingTweets.size());
+		System.out.println(".................................................");
+
+		subtopics.addAll(removedNode);
+		// ==> complexity: O(n*d*d+ k*n+ k*d*d)
+		// ==> old complexity: O(k*n*d*d)
+	}
+
 	public void efficientGetSubtopics() {
 		// base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
 		// Pitfalls, Measures, and Algorithms"
@@ -209,7 +313,7 @@ public class SummarizationModel {
 		int numberOfIgnoredNodes = 1;
 		while (true) {
 			allNodes.remove(bestNode);
-			System.out.println("removed: "+ bestNode);
+			System.out.println("removed: " + bestNode);
 			if (numberOfIgnoredNodes > Configure.NUMBER_OF_IGNORED_TOPICS) {
 				double utility = bestNode.getUtility();
 				sumOfUtility += utility;
@@ -242,7 +346,6 @@ public class SummarizationModel {
 				}
 				nodeStatusMap.put(bestNode, true);
 
-				
 			}
 			numberOfIgnoredNodes++;
 			// get the best node
@@ -535,6 +638,63 @@ public class SummarizationModel {
 
 		}
 		return true;
+	}
+
+	// getTopKTweetsByGettingHighestJaccardScores
+	public List<String> getTopKDiversifiedTweetsWithHigestJaccardScores(List<Node> subtopics) {
+
+		List<String> topTweets = new ArrayList<String>();
+
+		// for each node, iterate all tweets that contains the node
+		for (Node node : subtopics) {
+			System.out.printf(">>>>>>>>>Node: %s\n", node.getNodeName());
+			List<Tweet> tweetsOfNode = new ArrayList<Tweet>(node.getTweets());
+			HashMap<Tweet, Double> tweetSimilarityMap = new HashMap<Tweet, Double>();
+			tweetSimilarityMap.put(tweetsOfNode.get(0), 0.0);
+			for (int i = 0; i < tweetsOfNode.size(); i++) {
+				double sum = 0;
+				for (int j = i + 1; j < tweetsOfNode.size(); j++) {
+					double score = getJaccardScore(tweetsOfNode.get(i).getTerms(preprocessingUtils),
+							tweetsOfNode.get(j).getTerms(preprocessingUtils));
+					tweetSimilarityMap.put(tweetsOfNode.get(j), score);
+					sum += score;
+				}
+				double currentScore = tweetSimilarityMap.get(tweetsOfNode.get(i));
+				tweetSimilarityMap.put(tweetsOfNode.get(i), currentScore + sum);
+			}
+
+			// get top K tweets of the subtopic
+			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
+			//HashMap<String, Tweet> queueTweetMap = new HashMap<String, Tweet>();
+			for (Map.Entry<Tweet, Double> tweet : tweetSimilarityMap.entrySet()) {
+				String text = tweet.getKey().getText();
+				Double score = tweet.getValue();
+				if (queue.size() < Configure.TWEETS_IN_EACH_SUBTOPIC) {
+					queue.add(new KeyValue_Pair(text, score));
+
+					//queueTweetMap.put(text, tweet.getKey());
+				} else {
+					KeyValue_Pair head = queue.peek();
+
+					if (head.getDoubleValue() < score) {
+						KeyValue_Pair removedTweet = queue.poll();
+						queue.add(new KeyValue_Pair(text, score));
+
+						/*queueTweetMap.remove(removedTweet.getStrKey());
+						queueTweetMap.put(text, tweet.getKey());*/
+					}
+				}
+			}
+			while (!queue.isEmpty()) {
+				String text = queue.poll().getStrKey();
+				topTweets.add(text);
+				
+				System.out.println(text);
+			}
+		}
+
+		return topTweets;
+
 	}
 
 	// check if we can add t into the set of existed tweets
