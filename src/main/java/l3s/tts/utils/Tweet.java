@@ -10,69 +10,76 @@ public class Tweet {
 	private String userId;
 	private long createdAt;
 	private double weight;
+	private int windowId;
 	private List<TaggedToken> taggedTokens;
-	
+
 	private List<String> terms;
-	
+
 	public void setWeight(double weight) {
 		this.weight = weight;
 	}
-	
+
 	public double getWeight() {
 		return weight;
 	}
-	
+
 	public List<TaggedToken> getTaggedTokens() {
 		return taggedTokens;
 	}
-	
+
 	public static String RETWEET = "RT @";
-	
+
 	public Tweet(String text, String userId, long createdAt) {
 		// TODO Auto-generated constructor stub
-		//this.tweetId = tweetId;
+		// this.tweetId = tweetId;
 		this.userId = userId;
 		this.text = text;
 		this.createdAt = createdAt;
 		this.weight = 1.0;
 		taggedTokens = null;
 	}
-	
+
 	public int getTweetId() {
 		return tweetId;
 	}
-	
+
 	public void setTweetId(int tweetId) {
 		this.tweetId = tweetId;
 	}
-	
+
 	public String getText() {
 		return text;
 	}
-	
+
 	public String getUserId() {
 		return userId;
 	}
-	
-	public long getPublishedTime () {
+
+	public long getPublishedTime() {
 		return createdAt;
 	}
-	
+
 	public boolean isReTweet() {
 		return text.trim().startsWith(RETWEET);
 	}
-	
-	
+
+	public int getWindowId() {
+		return windowId;
+	}
+
+	public void setWindowId(int windowId) {
+		this.windowId = windowId;
+	}
+
 	public List<String> getTerms(TweetPreprocessingUtils preprocessingUtils) {
 		if (terms == null) {
 			terms = preprocessingUtils.extractTermInTweet(text);
 		}
 		return terms;
 	}
-	
+
 	public void print() {
 		System.out.printf("time = %d user = %s tweetId = %s text = %s\n", createdAt, userId, tweetId, text);
 	}
-	
-	
+
 }

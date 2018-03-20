@@ -4,42 +4,57 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashSet;
 
-public class Configure {
-	public enum scoreFunction {
-		GAIN_REDUNDANCY_ONLY, GAIN_WEIGHTED_REDUNDANCY_BY_LEVEL, GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL
-	}
 
+
+public class Configure {
+	
+	
+	public enum UpdatingType {
+		PERIOD, // update every TIME_STEP_WIDTH
+		TWEET_COUNT // update every TWEET_WINDOW
+	}
+	// option to ignore some general subtopic
+	public enum IgnoringType{
+		TOPIC_COUNT,
+		NOVELTY
+	}
+	// constants for directory
 	public static String STOPWORD_PATH;
 	public static String WORKING_DIRECTORY;
 
-	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
-
-	public static int WINDOW_SIZE = 4;
+	//constants for building graph
+	public static int WINDOW_SIZE = 4; // to form edges of graph
+	//constants for random walks
 	public static int NUMBER_OF_RANDOM_WALK_AT_EACH_NODE = 4;
 	public static int RANDOM_WALK_LENGTH = 20;
 	public static double DAMPING_FACTOR = 0.15;
-	public static int L_EXPANSION = 1;
-	public static double MAGINAL_UTILITY = 0.05;
-	public static int MAX_SUMMARIES = 5;
-	public static double JACCARD_THRESOLD = 0.3;
-	public static int TOP_K = 10;
+
+
 	
-	public static int NUMBER_OF_IGNORED_TOPICS = 3;
+	//constants to select subtopics
+	public static int L_EXPANSION = 1;
+	public static int TOP_K_PAGERANK = 10;
+	public static double MAGINAL_UTILITY = 0.05;
+	public static int NUMBER_OF_IGNORED_TOPICS = 3; 
+	public static double NOVELTY_RATIO = 0.1;// 10% 
+	
+	//constants to select top tweets for each subtopics
+	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
+	public static double JACCARD_THRESOLD = 0.3;
+	public static boolean OVERLAPPING_TOPICS = false;
 
-	public static boolean STOP_AT_ENDINGTOKENS = true;
-	public static int NUMBER_OF_REMOVING_TWEETS = 3;
-	public static boolean SIMPLE_UPDATE = false;
-
+	// constants for updating model
+	public final static UpdatingType updatingType = UpdatingType.PERIOD;
+	public final static IgnoringType ignoringType = IgnoringType.NOVELTY;
+	public static int TWEET_WINDOW = 1000; // update every 1000 tweets
+	public final static long TIME_STEP_WIDTH = 60 * 60 * 1000;// 60 mins;
+	public static int NUMBER_OF_REMOVING_TWEETS = 100;// for updating step
+	public static int FORGOTTON_WINDOW_DISTANCE = 12;
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
-
+	// set of stopwords
 	public static HashSet<String> stopWords;
-
-	// minutes
-	public static int TWEET_WINDOW = 1000;
-	public final static long TIME_STEP_WIDTH = 30 * 60 * 1000;// 30 mins;
-
-	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
-
+	
+	
 	public Configure() {
 		// TODO Auto-generated constructor stub
 		 WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
