@@ -15,7 +15,6 @@ import java.util.concurrent.PriorityBlockingQueue;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleGraph;
 
-import edu.stanford.nlp.io.EncodingPrintWriter.out;
 import l3s.tts.configure.Configure;
 import l3s.tts.configure.Configure.IgnoringType;
 import l3s.tts.utils.KeyValue_Pair;
@@ -96,19 +95,20 @@ public class SummarizationModel {
 
 		double sumOfUtility = 0;
 		int numberOfIgnoredNodes = 1;
-		double novelty = 0;
 
 		Set<Tweet> coveredTweetsByFirstSet = new HashSet<Tweet>();// set of tweets covered by ignored top topics
 		Set<Tweet> coveredTweetsBySecondSet = new HashSet<Tweet>();
 		Node bestNode = getBestNode(uncoveredNodes);
-
+		Set<Node> ignoredNodes = new HashSet<Node>();
 		while (true) {
 			uncoveredNodes.remove(bestNode);
 			System.out.printf("removed: %s\t ", bestNode);
 			// ignore some subtopics
-			if (ignoreSubtopic(coveredTweetsByFirstSet, bestNode, numberOfIgnoredNodes)) {
+			if (ignoreSubtopic(coveredTweetsByFirstSet, bestNode, numberOfIgnoredNodes) == true) {
 				numberOfIgnoredNodes++;
+				ignoredNodes.add(bestNode);
 				bestNode = getBestNode(uncoveredNodes);
+				
 				continue;
 			}
 			// start getting aspects
@@ -126,8 +126,9 @@ public class SummarizationModel {
 			coveredTweetsBySecondSet.addAll(bestNode.getTweets());
 			// get the next best node
 			bestNode = getBestNode(uncoveredNodes);
-
+			
 		}
+		subtopics.addAll(ignoredNodes);
 		checkIntersectionOf2Set(coveredTweetsByFirstSet, coveredTweetsBySecondSet);
 		// ==> complexity: O(n*d*d+ k*n+ k*d*d)
 		// ==> old complexity: O(k*n*d*d)
@@ -346,7 +347,7 @@ public class SummarizationModel {
 				double pageRank = computeTweetScore(terms);
 				textTweetMap.put(text, tweet);
 
-				// option allow get a tweet that is already chosen by another topic
+				// option: allow to get a tweet that is already chosen by another topic
 				if (Configure.OVERLAPPING_TOPICS == false && coveredTweets.contains(text))
 					continue;
 				coveredTweets.add(text);
@@ -370,7 +371,7 @@ public class SummarizationModel {
 		System.out.println("\n>>>>>>>>>>>>FINAL RESULT>>>>>>>>>>>>>>>>>>>>");
 		// remove redundancy of the union set
 		Set<Tweet> result = removeRedundancyByDiversifiedRanking(union);
-		return null;
+		return result;
 	}
 
 	private Set<Tweet> removeRedundancyByDiversifiedRanking(HashMap<Tweet, List<String>> input) {
@@ -384,7 +385,6 @@ public class SummarizationModel {
 			double sum = 0;
 			for (int j = i + 1; j < listOfTweets.size(); j++) {
 				double score = getJaccardScore(input.get(listOfTweets.get(i)), input.get(listOfTweets.get(j)));
-				
 				if (i == 0)
 					tweetSimilarityMap.put(listOfTweets.get(j), score);
 				else
@@ -393,17 +393,13 @@ public class SummarizationModel {
 			}
 			double currentScore = tweetSimilarityMap.get(listOfTweets.get(i));
 			tweetSimilarityMap.put(listOfTweets.get(i), sum + currentScore);
-			
 		}
 		
 		// remove redundancy
 		double sumOfUtility = 0;
-		
 		while(true) {
 			// get the best tweet
 			double utility = 0;
-			
-
 			Tweet bestTweet = null;
 			for(Tweet t: listOfTweets) {
 				if(tweetSimilarityMap.get(t) > utility) {
@@ -413,9 +409,8 @@ public class SummarizationModel {
 			}
 			sumOfUtility +=utility;
 		//	System.out.printf("utility: %f\n", utility);
-			if(utility/sumOfUtility < 0.01)
+			if(utility/sumOfUtility < Configure.JACCARD_UTILITY)
 				break;
-			
 			System.out.println(bestTweet.getText());
 			output.add(bestTweet);
 			listOfTweets.remove(bestTweet);

@@ -40,8 +40,9 @@ public class Configure {
 	
 	//constants to select top tweets for each subtopics
 	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
-	public static double JACCARD_THRESOLD = 0.3;
+	public static double JACCARD_THRESOLD = 0.3; // to ignore similar tweets for each subtopic
 	public static boolean OVERLAPPING_TOPICS = false;
+	public static double JACCARD_UTILITY = 0.01; // to remove redundancy in the last step
 
 	// constants for updating model
 	public final static UpdatingType updatingType = UpdatingType.PERIOD;

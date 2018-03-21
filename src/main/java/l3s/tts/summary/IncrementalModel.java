@@ -96,9 +96,9 @@ public class IncrementalModel extends SummarizationModel {
 				windowIndex++;
 				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 				startTime = System.currentTimeMillis();
-
+				
 			}
-
+			//System.out.println(nOfTweets);
 		}
 		format.close();
 
