@@ -48,7 +48,7 @@ public class Configure {
 	public static int TWEET_WINDOW = 1000; // update every 1000 tweets
 	public final static long TIME_STEP_WIDTH = 60 * 60 * 1000;// 60 mins;
 	public static int NUMBER_OF_REMOVING_TWEETS = 100;// for updating step
-	public static int FORGOTTON_WINDOW_DISTANCE = 12;
+	public static int FORGOTTEN_WINDOW_DISTANCE = 12;
 	public static String DATE_TIME_FORMAT = "EEE MMM dd HH:mm:ss +0000 yyyy";
 	// set of stopwords
 	public static HashSet<String> stopWords;
@@ -80,12 +80,18 @@ public class Configure {
 	public static String TWEET_KEY_VALUE_SEPARATOR = "=";
 
 	public static double AMPLIFY_FACTOR = 1000;
+	public static int NUM_REPRESENTATIVE_TWEETS = 10;
+	public static double BETA = 0.3;
+	public static int MU_THRESHOLD = 50;
+	public static double MERGE_THRESHOLD = 0.7;
+	public static int MERGE_TRIGGER = 50;
+	public static int LEXRANK_NUM_ITERATIONS = 50;
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
-		WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
+		// WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		// WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 

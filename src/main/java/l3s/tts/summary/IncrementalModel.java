@@ -53,7 +53,8 @@ public class IncrementalModel extends SummarizationModel {
 		long startTime = System.currentTimeMillis();
 		long endTime;
 
-		//SimpleDateFormat dateFormat = new SimpleDateFormat(Configure.DATE_TIME_FORMAT);
+		// SimpleDateFormat dateFormat = new
+		// SimpleDateFormat(Configure.DATE_TIME_FORMAT);
 		long nextUpdate = 0;
 		int windowIndex = 0;
 		while ((tweet = stream.getTweet()) != null) {
@@ -61,7 +62,7 @@ public class IncrementalModel extends SummarizationModel {
 			// continue; // ignore retweets
 			if (nOfTweets == 0)
 				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
-			
+
 			tweet.setWindowId(windowIndex);
 			recentTweets.add(tweet);
 			addNewTweet(tweet);
@@ -71,7 +72,7 @@ public class IncrementalModel extends SummarizationModel {
 			if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets == Configure.TWEET_WINDOW)
 					|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex == 0
 							&& tweet.getPublishedTime() > nextUpdate)) {
-				
+
 				System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
 				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
 				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
@@ -86,7 +87,7 @@ public class IncrementalModel extends SummarizationModel {
 			else if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets % Configure.TWEET_WINDOW == 0)
 					|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex > 0
 							&& tweet.getPublishedTime() > nextUpdate)) {
-				
+
 				System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
 				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
 				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
@@ -96,9 +97,9 @@ public class IncrementalModel extends SummarizationModel {
 				windowIndex++;
 				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 				startTime = System.currentTimeMillis();
-				
+
 			}
-			//System.out.println(nOfTweets);
+			// System.out.println(nOfTweets);
 		}
 		format.close();
 
@@ -151,12 +152,12 @@ public class IncrementalModel extends SummarizationModel {
 		// int numberOfRemovedNodes = 0;
 		// get current window index
 		int lastWindowIndex = recentTweets.getLast().getWindowId();
-		if( lastWindowIndex < Configure.FORGOTTON_WINDOW_DISTANCE)
+		if (lastWindowIndex < Configure.FORGOTTEN_WINDOW_DISTANCE)
 			return;
-		
-		int removedWindowIndex = lastWindowIndex - Configure.FORGOTTON_WINDOW_DISTANCE;
-		while(true) {
-			if(recentTweets.getFirst().getWindowId() != removedWindowIndex)
+
+		int removedWindowIndex = lastWindowIndex - Configure.FORGOTTEN_WINDOW_DISTANCE;
+		while (true) {
+			if (recentTweets.getFirst().getWindowId() != removedWindowIndex)
 				break;
 			Tweet tweet = recentTweets.removeFirst();
 
@@ -181,11 +182,23 @@ public class IncrementalModel extends SummarizationModel {
 					double weight = graph.getEdgeWeight(edge);
 					if (weight == 1) {
 						graph.removeEdge(edge);
-						source.setWeightOfOutgoingNodes(edge, 0); // update weight for outgoing edges of source node
+						source.setWeightOfOutgoingNodes(edge, 0); // update
+																	// weight
+																	// for
+																	// outgoing
+																	// edges of
+																	// source
+																	// node
 					} else {
 						graph.setEdgeWeight(edge, weight - tweet.getWeight());
-						source.setWeightOfOutgoingNodes(edge, weight - tweet.getWeight()); // update weight for outgoing
-																							// edges of source node
+						source.setWeightOfOutgoingNodes(edge, weight - tweet.getWeight()); // update
+																							// weight
+																							// for
+																							// outgoing
+																							// edges
+																							// of
+																							// source
+																							// node
 					}
 
 				}

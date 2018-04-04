@@ -17,7 +17,10 @@ public class Tweet {
 	private int windowId;
 	private List<TaggedToken> taggedTokens;
 	private List<String> terms;
-	private HashMap<String, Double> vector;// for sumblr baseline
+
+	// for baselines
+	private HashMap<String, Double> vector;
+	private double norm;
 
 	public void setWeight(double weight) {
 		this.weight = weight;
@@ -41,6 +44,9 @@ public class Tweet {
 		this.createdAt = createdAt;
 		this.weight = 1.0;
 		taggedTokens = null;
+		// for baselines
+		vector = null;
+		norm = -1;
 	}
 
 	public int getTweetId() {
@@ -87,15 +93,42 @@ public class Tweet {
 	}
 
 	public double getNorm() {
-		double norm = 0;
-		for (Map.Entry<String, Double> pair : vector.entrySet()) {
-			norm += Math.pow(pair.getValue(), 2);
+		if (norm < 0) {
+			norm = 0;
+			for (Map.Entry<String, Double> pair : vector.entrySet()) {
+				norm += Math.pow(pair.getValue(), 2);
+			}
+			norm = Math.sqrt(norm);
 		}
-		return Math.sqrt(norm);
+		return norm;
+	}
+
+	public void buildVector(HashMap<String, Integer> termDF, int nAllTweets) {
+		vector = new HashMap<String, Double>();
+		for (String term : terms) {
+			if (vector.containsKey(term)) {
+				vector.put(term, Math.log(((double) nAllTweets) / termDF.get(term)) + vector.get(term));
+			} else {
+				vector.put(term, Math.log(((double) nAllTweets) / termDF.get(term)));
+			}
+		}
 	}
 
 	public HashMap<String, Double> getVector() {
 		return vector;
+	}
+
+	public double getSimilarity(Tweet other) {
+		double sim = 0;
+		for (Map.Entry<String, Double> pair : other.getVector().entrySet()) {
+			String key = pair.getKey();
+			double value = pair.getValue();
+			if (vector.containsKey(key)) {
+				sim += value * vector.get(key);
+			}
+		}
+		sim = sim / (getNorm() * other.getNorm());
+		return sim;
 	}
 
 	public String toString() {
