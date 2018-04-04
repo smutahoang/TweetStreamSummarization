@@ -223,18 +223,29 @@ public class LexRank {
 		return summary;
 	}
 
+	/***
+	 * 
+	 */
+	public LexRank() {
+
+	}
+
+	/***
+	 * 
+	 * @param _stream
+	 */
 	public LexRank(TweetStream _stream) {
 		stream = _stream;
-		refTime = -1;
-		nTweets = 0;
-		currentTime = 0;
 		preprocessingUtils = new TweetPreprocessingUtils();
 		recentTweets = new LinkedList<Tweet>();
 		termTweetCount = new HashMap<String, Integer>();
+		// fist tweet
 		Tweet tweet = stream.getTweet();
+		nTweets = 1;
 		refTime = tweet.getPublishedTime();
-		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+		currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
 		tweet.setWindowId(currentTime);
+		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		for (String term : terms) {
 			if (termTweetCount.containsKey(term)) {
@@ -264,7 +275,7 @@ public class LexRank {
 			if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nTweets % Configure.TWEET_WINDOW == 0)
 					|| (Configure.updatingType == UpdatingType.PERIOD && tweet.getPublishedTime() >= nextUpdate)) {
 				genSummary();
-				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+				nextUpdate += Configure.TIME_STEP_WIDTH;
 			}
 		}
 	}

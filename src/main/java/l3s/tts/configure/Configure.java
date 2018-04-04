@@ -76,20 +76,25 @@ public class Configure {
 		public static int TERM_TFIDF = 4;
 	}
 
-	public static String TWEET_FIELD_SEPARATOR = " ";
-	public static String TWEET_KEY_VALUE_SEPARATOR = "=";
+	public static String SUMBLR_TWEET_FIELD_SEPARATOR = " ";
+	public static String SUMBLR_TWEET_KEY_VALUE_SEPARATOR = "=";
 
-	public static double AMPLIFY_FACTOR = 1000;
-	public static int NUM_REPRESENTATIVE_TWEETS = 10;
-	public static double BETA = 0.3;
-	public static int MU_THRESHOLD = 50;
-	public static double MERGE_THRESHOLD = 0.7;
-	public static int MERGE_TRIGGER = 50;
+	public static double SUMBLR_AMPLIFY_FACTOR = 1000;
+	public static int SUMBLR_NUM_REPRESENTATIVE_TWEETS = 10;
+	public static double SUMBLR_BETA = 0.3;
+	public static int SUMBLR_MU_THRESHOLD = 50;
+	public static double SUMBLR_MERGE_THRESHOLD = 0.7;
+	public static int SUMBLR_MERGE_TRIGGER = 50;
+	public static int SUMBLR_NUMBER_INITIAL_TWEETS = 100;
+	public static int SUMBLR_NUMBER_INITIAL_CLUSTERS = 10;
+	public static int SUMBLR_NUMBER_KMEANS_ITERATIONS = 10;
+
 	public static int LEXRANK_NUM_ITERATIONS = 50;
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
-		// WORKING_DIRECTORY = "D:/Alexandria/summarization/TweetStreamSummarization/data";
+		// WORKING_DIRECTORY =
+		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
 		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 

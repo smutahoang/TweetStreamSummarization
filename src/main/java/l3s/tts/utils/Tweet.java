@@ -107,9 +107,9 @@ public class Tweet {
 		vector = new HashMap<String, Double>();
 		for (String term : terms) {
 			if (vector.containsKey(term)) {
-				vector.put(term, Math.log(((double) nAllTweets) / termDF.get(term)) + vector.get(term));
+				vector.put(term, Math.log(1 + ((double) nAllTweets) / termDF.get(term)) + vector.get(term));
 			} else {
-				vector.put(term, Math.log(((double) nAllTweets) / termDF.get(term)));
+				vector.put(term, Math.log(1 + ((double) nAllTweets) / termDF.get(term)));
 			}
 		}
 	}
@@ -134,17 +134,17 @@ public class Tweet {
 	public String toString() {
 		StringBuilder strBuilder = new StringBuilder();
 		strBuilder.append(
-				String.format("%s%s%d", Configure.TWEET_MARKER.ID, Configure.TWEET_KEY_VALUE_SEPARATOR, tweetId));
-		strBuilder.append(String.format("%s%s%s%s", Configure.TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.TEXT,
-				Configure.TWEET_KEY_VALUE_SEPARATOR, text));
-		strBuilder.append(String.format("%s%s%s%s", Configure.TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.USER_ID,
-				Configure.TWEET_KEY_VALUE_SEPARATOR, userId));
-		strBuilder.append(String.format("%s%s%s%d", Configure.TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.CREATED_AT,
-				Configure.TWEET_KEY_VALUE_SEPARATOR, createdAt));
+				String.format("%s%s%d", Configure.TWEET_MARKER.ID, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, tweetId));
+		strBuilder.append(String.format("%s%s%s%s", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.TEXT,
+				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, text));
+		strBuilder.append(String.format("%s%s%s%s", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.USER_ID,
+				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, userId));
+		strBuilder.append(String.format("%s%s%s%d", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.CREATED_AT,
+				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, createdAt));
 		for (Map.Entry<String, Double> pair : vector.entrySet()) {
-			strBuilder.append(String.format("%s%s%s%s%s%.12f", Configure.TWEET_FIELD_SEPARATOR,
-					Configure.TWEET_MARKER.TERM_TFIDF, Configure.TWEET_KEY_VALUE_SEPARATOR, pair.getKey(),
-					Configure.TWEET_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.AMPLIFY_FACTOR));
+			strBuilder.append(String.format("%s%s%s%s%s%.12f", Configure.SUMBLR_TWEET_FIELD_SEPARATOR,
+					Configure.TWEET_MARKER.TERM_TFIDF, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, pair.getKey(),
+					Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.SUMBLR_AMPLIFY_FACTOR));
 		}
 
 		return strBuilder.toString();
@@ -153,9 +153,9 @@ public class Tweet {
 	public Tweet(String tweetStr) {
 		try {
 			vector = new HashMap<String, Double>();
-			String[] tokens = tweetStr.split(Configure.TWEET_FIELD_SEPARATOR);
+			String[] tokens = tweetStr.split(Configure.SUMBLR_TWEET_FIELD_SEPARATOR);
 			for (String token : tokens) {
-				String[] subTokens = token.split(Configure.TWEET_KEY_VALUE_SEPARATOR);
+				String[] subTokens = token.split(Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR);
 				int marker = Integer.parseInt(subTokens[0]);
 				if (marker == Configure.TWEET_MARKER.ID) {
 					tweetId = Integer.parseInt(subTokens[1]);
@@ -166,7 +166,7 @@ public class Tweet {
 				} else if (marker == Configure.TWEET_MARKER.CREATED_AT) {
 					createdAt = Long.parseLong(subTokens[1]);
 				} else if (marker == Configure.TWEET_MARKER.TERM_TFIDF) {
-					vector.put(subTokens[1], Double.parseDouble(subTokens[1]) / Configure.AMPLIFY_FACTOR);
+					vector.put(subTokens[1], Double.parseDouble(subTokens[1]) / Configure.SUMBLR_AMPLIFY_FACTOR);
 				} else {
 					System.out.printf("ERROR when parsing token = %s\n", token);
 					System.exit(-1);

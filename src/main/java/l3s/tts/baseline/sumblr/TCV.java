@@ -216,7 +216,7 @@ public class TCV {
 		sumTweetSqrTime += time * time;
 
 		// update representative tweets
-		if (tweets.size() < Configure.NUM_REPRESENTATIVE_TWEETS) {
+		if (tweets.size() < Configure.SUMBLR_NUM_REPRESENTATIVE_TWEETS) {
 			tweets.add(tweet);
 		} else {
 			PriorityQueue<TweetTuple> queue = new PriorityQueue<TweetTuple>();
@@ -251,7 +251,7 @@ public class TCV {
 	 */
 	public double getFreshness(double quantile) {
 		double muTime = sumTweetTime / nTweets;
-		if (nTweets < Configure.MU_THRESHOLD)
+		if (nTweets < Configure.SUMBLR_MU_THRESHOLD)
 			return muTime;
 		double sigmaTime = Math.sqrt(sumTweetSqrTime / nTweets - muTime * muTime);
 		return muTime + sigmaTime * quantile;
@@ -294,7 +294,7 @@ public class TCV {
 		HashSet<Tweet> allTweets = new HashSet<Tweet>();
 		allTweets.addAll(tweets);
 		allTweets.addAll(other.getTweets());
-		if (allTweets.size() < Configure.NUM_REPRESENTATIVE_TWEETS) {
+		if (allTweets.size() < Configure.SUMBLR_NUM_REPRESENTATIVE_TWEETS) {
 			tweets = allTweets;
 		} else {
 			PriorityQueue<TweetTuple> queue = new PriorityQueue<TweetTuple>();
@@ -335,10 +335,10 @@ public class TCV {
 					sumTweetTime = Integer.parseInt(subTokens[1]);
 				} else if (marker == Configure.TCV_MARKER.WEIGHTED_SUM_TWEET_VECTOR) {
 					weightedSumTweetVector.put(subTokens[1],
-							Double.parseDouble(subTokens[2]) / Configure.AMPLIFY_FACTOR);
+							Double.parseDouble(subTokens[2]) / Configure.SUMBLR_AMPLIFY_FACTOR);
 				} else if (marker == Configure.TCV_MARKER.SUM_NORMALIZED_TWEET_VECTOR) {
 					sumNormalizedTweetVector.put(subTokens[1],
-							Double.parseDouble(subTokens[2]) / Configure.AMPLIFY_FACTOR);
+							Double.parseDouble(subTokens[2]) / Configure.SUMBLR_AMPLIFY_FACTOR);
 				} else if (marker == Configure.TCV_MARKER.REPRESENTATIVE_TWEETS) {
 					Tweet tweet = new Tweet(subTokens[1]);
 					tweets.add(tweet);
@@ -368,12 +368,12 @@ public class TCV {
 		for (Map.Entry<String, Double> pair : weightedSumTweetVector.entrySet()) {
 			strBuilder.append(String.format("%s%d%s%s%s%.12f", Configure.TCV_FIELD_SEPARATOR,
 					Configure.TCV_MARKER.WEIGHTED_SUM_TWEET_VECTOR, Configure.TCV_KEY_VALUE_SEPARATOR, pair.getKey(),
-					Configure.TCV_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.AMPLIFY_FACTOR));
+					Configure.TCV_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.SUMBLR_AMPLIFY_FACTOR));
 		}
 		for (Map.Entry<String, Double> pair : sumNormalizedTweetVector.entrySet()) {
 			strBuilder.append(String.format("%s%d%s%s%s%.12f", Configure.TCV_FIELD_SEPARATOR,
 					Configure.TCV_MARKER.SUM_NORMALIZED_TWEET_VECTOR, Configure.TCV_KEY_VALUE_SEPARATOR, pair.getKey(),
-					Configure.TCV_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.AMPLIFY_FACTOR));
+					Configure.TCV_KEY_VALUE_SEPARATOR, pair.getValue() * Configure.SUMBLR_AMPLIFY_FACTOR));
 		}
 		for (Tweet tweet : tweets) {
 			strBuilder.append(String.format("%s%d%s%s", Configure.TCV_FIELD_SEPARATOR,
