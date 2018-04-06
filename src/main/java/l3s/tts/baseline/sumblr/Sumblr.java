@@ -78,7 +78,7 @@ public class Sumblr {
 		nTweets = 1;
 		refTime = tweet.getPublishedTime();
 		currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-		tweet.setWindowId(currentTime);
+		tweet.setTimeStep(currentTime);
 		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		for (String term : terms) {

@@ -9,12 +9,12 @@ import l3s.tts.configure.Configure;
 
 public class Tweet {
 
-	private int tweetId;
+	private String tweetId;
 	private String text;
 	private String userId;
 	private long createdAt;
 	private double weight;
-	private int windowId;
+	private int timeStep;
 	private List<TaggedToken> taggedTokens;
 	private List<String> terms;
 
@@ -36,9 +36,10 @@ public class Tweet {
 
 	public static String RETWEET = "RT @";
 
-	public Tweet(String text, String userId, long createdAt) {
+	public Tweet(String tweetId, String text, String userId, long createdAt) {
 		// TODO Auto-generated constructor stub
 		// this.tweetId = tweetId;
+		this.tweetId = tweetId;
 		this.userId = userId;
 		this.text = text;
 		this.createdAt = createdAt;
@@ -49,12 +50,8 @@ public class Tweet {
 		norm = -1;
 	}
 
-	public int getTweetId() {
+	public String getTweetId() {
 		return tweetId;
-	}
-
-	public void setTweetId(int tweetId) {
-		this.tweetId = tweetId;
 	}
 
 	public String getText() {
@@ -73,12 +70,12 @@ public class Tweet {
 		return text.trim().startsWith(RETWEET);
 	}
 
-	public int getWindowId() {
-		return windowId;
+	public int getTimeStep() {
+		return timeStep;
 	}
 
-	public void setWindowId(int windowId) {
-		this.windowId = windowId;
+	public void setTimeStep(int _timeStep) {
+		this.timeStep = _timeStep;
 	}
 
 	public List<String> getTerms(TweetPreprocessingUtils preprocessingUtils) {
@@ -133,14 +130,14 @@ public class Tweet {
 
 	public String toString() {
 		StringBuilder strBuilder = new StringBuilder();
-		strBuilder.append(
-				String.format("%s%s%d", Configure.TWEET_MARKER.ID, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, tweetId));
+		strBuilder.append(String.format("%s%s%s", Configure.TWEET_MARKER.ID, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR,
+				tweetId));
 		strBuilder.append(String.format("%s%s%s%s", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.TEXT,
 				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, text));
-		strBuilder.append(String.format("%s%s%s%s", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.USER_ID,
-				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, userId));
-		strBuilder.append(String.format("%s%s%s%d", Configure.SUMBLR_TWEET_FIELD_SEPARATOR, Configure.TWEET_MARKER.CREATED_AT,
-				Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, createdAt));
+		strBuilder.append(String.format("%s%s%s%s", Configure.SUMBLR_TWEET_FIELD_SEPARATOR,
+				Configure.TWEET_MARKER.USER_ID, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, userId));
+		strBuilder.append(String.format("%s%s%s%d", Configure.SUMBLR_TWEET_FIELD_SEPARATOR,
+				Configure.TWEET_MARKER.CREATED_AT, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, createdAt));
 		for (Map.Entry<String, Double> pair : vector.entrySet()) {
 			strBuilder.append(String.format("%s%s%s%s%s%.12f", Configure.SUMBLR_TWEET_FIELD_SEPARATOR,
 					Configure.TWEET_MARKER.TERM_TFIDF, Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR, pair.getKey(),
@@ -158,7 +155,7 @@ public class Tweet {
 				String[] subTokens = token.split(Configure.SUMBLR_TWEET_KEY_VALUE_SEPARATOR);
 				int marker = Integer.parseInt(subTokens[0]);
 				if (marker == Configure.TWEET_MARKER.ID) {
-					tweetId = Integer.parseInt(subTokens[1]);
+					tweetId = subTokens[1];
 				} else if (marker == Configure.TWEET_MARKER.USER_ID) {
 					userId = subTokens[1];
 				} else if (marker == Configure.TWEET_MARKER.TEXT) {

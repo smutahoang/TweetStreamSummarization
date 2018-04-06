@@ -63,7 +63,7 @@ public class IncrementalModel extends SummarizationModel {
 			if (nOfTweets == 0)
 				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 
-			tweet.setWindowId(windowIndex);
+			tweet.setTimeStep(windowIndex);
 			recentTweets.add(tweet);
 			addNewTweet(tweet);
 			nOfTweets++;
@@ -151,13 +151,13 @@ public class IncrementalModel extends SummarizationModel {
 	public void removeOldestTweets() {
 		// int numberOfRemovedNodes = 0;
 		// get current window index
-		int lastWindowIndex = recentTweets.getLast().getWindowId();
+		int lastWindowIndex = recentTweets.getLast().getTimeStep();
 		if (lastWindowIndex < Configure.FORGOTTEN_WINDOW_DISTANCE)
 			return;
 
 		int removedWindowIndex = lastWindowIndex - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		while (true) {
-			if (recentTweets.getFirst().getWindowId() != removedWindowIndex)
+			if (recentTweets.getFirst().getTimeStep() != removedWindowIndex)
 				break;
 			Tweet tweet = recentTweets.removeFirst();
 

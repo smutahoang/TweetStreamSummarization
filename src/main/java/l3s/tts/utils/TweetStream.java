@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
+
 /**
  * 
  * @author Huyen Nguyen
@@ -31,9 +32,9 @@ public class TweetStream {
 		int currentFile = 0;
 		openFile(fileList[currentFile]);
 	}
+
 	/***
-	 * @author: Tuan-Anh
-	 * check if tweet is valid by manually identified rules
+	 * @author: Tuan-Anh check if tweet is valid by manually identified rules
 	 * 
 	 * @param text
 	 * @return
@@ -44,6 +45,7 @@ public class TweetStream {
 		}
 		return true;
 	}
+
 	public Tweet getTweet() {
 		Tweet tweet = null;
 		String line;
@@ -53,7 +55,7 @@ public class TweetStream {
 				if (line == null) {
 					buff.close();
 					currentFile++;
-		
+
 					if (currentFile == fileList.length)
 						return null;
 					else {
@@ -64,16 +66,16 @@ public class TweetStream {
 				}
 
 				String[] text = line.split("\t");
-				//String tweetId = text[0];
+				String tweetId = text[0];
 				String userId = text[3];
 				long createdAt = Long.parseLong(text[2]);
 				String content = text[4];
-				
-				if(!isValidTweet(content)) {
+
+				if (!isValidTweet(content)) {
 					line = buff.readLine();
 					continue;
 				}
-				tweet = new Tweet(content, userId, createdAt);
+				tweet = new Tweet(tweetId, content, userId, createdAt);
 				return tweet;
 			}
 		} catch (Exception e) {

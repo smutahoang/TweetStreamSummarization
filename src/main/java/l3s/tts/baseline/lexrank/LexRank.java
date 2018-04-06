@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import l3s.tts.baseline.sumblr.TCV;
 import l3s.tts.configure.Configure;
 import l3s.tts.configure.Configure.UpdatingType;
 import l3s.tts.utils.TimeUtils;
@@ -244,7 +243,7 @@ public class LexRank {
 		nTweets = 1;
 		refTime = tweet.getPublishedTime();
 		currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-		tweet.setWindowId(currentTime);
+		tweet.setTimeStep(currentTime);
 		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		for (String term : terms) {
@@ -262,7 +261,7 @@ public class LexRank {
 		while ((tweet = stream.getTweet()) != null) {
 			nTweets++;
 			currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-			tweet.setWindowId(currentTime);
+			tweet.setTimeStep(currentTime);
 			List<String> terms = tweet.getTerms(preprocessingUtils);
 			for (String term : terms) {
 				if (termTweetCount.containsKey(term)) {
@@ -301,7 +300,7 @@ public class LexRank {
 		}
 		int lastTimeStep = currentTime - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		while (true) {
-			if (recentTweets.getFirst().getWindowId() <= lastTimeStep) {
+			if (recentTweets.getFirst().getTimeStep() <= lastTimeStep) {
 				Tweet tweet = recentTweets.removeFirst();
 				List<String> terms = tweet.getTerms(preprocessingUtils);
 				for (String term : terms) {
