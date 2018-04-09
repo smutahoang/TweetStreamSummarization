@@ -4,7 +4,7 @@ import l3s.tts.configure.Configure;
 import l3s.tts.evaluation.TwitterLDA;
 import l3s.tts.utils.TweetStream;
 
-public class TestEvaluation {
+public class TestGroundtruthGeneration {
 	public static void main(String[] args) {
 		new Configure();
 		long startTime = System.currentTimeMillis();
