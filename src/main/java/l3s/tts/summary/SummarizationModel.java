@@ -33,6 +33,8 @@ public class SummarizationModel {
 	protected int walkId;
 	protected List<Node> subtopics;
 
+	protected boolean debugingMode = true;
+
 	protected Random rand;
 
 	public SummarizationModel() {
@@ -78,12 +80,17 @@ public class SummarizationModel {
 		return topNodes;
 	}
 
+	/***
+	 * base on ALGORITHM 2 in
+	 * "Diversified Recommendation on Graphs: Pitfalls, Measures, and Algorithms"
+	 */
 	public void efficientGetSubtopics() {
-		// base on ALGORITHM 2 in "Diversified Recommendation on Graphs:
-		// Pitfalls, Measures, and Algorithms"
+
 		HashMap<Node, Set<Node>> nodeNeighborMap = new HashMap<Node, Set<Node>>();
-		HashMap<Node, Boolean> nodeStatusMap = new HashMap<Node, Boolean>(); // node's neighbors are already consider or
-																				// not
+
+		// node's neighbors are already consider or not
+		HashMap<Node, Boolean> nodeStatusMap = new HashMap<Node, Boolean>();
+
 		Set<Node> uncoveredNodes = new HashSet<Node>(wordNodeMap.values());
 
 		// Initialization: compute utility of every node
@@ -96,7 +103,9 @@ public class SummarizationModel {
 		double sumOfUtility = 0;
 		int numberOfIgnoredNodes = 1;
 
-		Set<Tweet> coveredTweetsByFirstSet = new HashSet<Tweet>();// set of tweets covered by ignored top topics
+		// set of tweets covered by ignored top topics
+		Set<Tweet> coveredTweetsByFirstSet = new HashSet<Tweet>();
+
 		Set<Tweet> coveredTweetsBySecondSet = new HashSet<Tweet>();
 		Node bestNode = getBestNode(uncoveredNodes);
 		Set<Node> ignoredNodes = new HashSet<Node>();
@@ -108,7 +117,7 @@ public class SummarizationModel {
 				numberOfIgnoredNodes++;
 				ignoredNodes.add(bestNode);
 				bestNode = getBestNode(uncoveredNodes);
-				
+
 				continue;
 			}
 			// start getting aspects
@@ -126,7 +135,7 @@ public class SummarizationModel {
 			coveredTweetsBySecondSet.addAll(bestNode.getTweets());
 			// get the next best node
 			bestNode = getBestNode(uncoveredNodes);
-			
+
 		}
 		subtopics.addAll(ignoredNodes);
 		checkIntersectionOf2Set(coveredTweetsByFirstSet, coveredTweetsBySecondSet);
@@ -330,8 +339,15 @@ public class SummarizationModel {
 
 	public Set<Tweet> getTopKDiversifiedTweets(List<Node> subtopics) {
 
-		Set<String> coveredTweets = new HashSet<String>();// set of all tweets of considered topics
-		HashMap<Tweet, List<String>> union = new HashMap<Tweet, List<String>>(); // union of important tweets of each
+		Set<String> coveredTweets = new HashSet<String>();// set of all tweets
+															// of considered
+															// topics
+		HashMap<Tweet, List<String>> union = new HashMap<Tweet, List<String>>(); // union
+																					// of
+																					// important
+																					// tweets
+																					// of
+																					// each
 																					// topics
 		HashMap<String, Tweet> textTweetMap = new HashMap<String, Tweet>();
 		for (Node node : subtopics) {
@@ -347,14 +363,17 @@ public class SummarizationModel {
 				double pageRank = computeTweetScore(terms);
 				textTweetMap.put(text, tweet);
 
-				// option: allow to get a tweet that is already chosen by another topic
+				// option: allow to get a tweet that is already chosen by
+				// another topic
 				if (Configure.OVERLAPPING_TOPICS == false && coveredTweets.contains(text))
 					continue;
 				coveredTweets.add(text);
 				queue.add(new KeyValue_Pair(text, pageRank * (-1)));
 
 			}
-			System.out.printf("\n>>>>>Node: %s\n", node.getNodeName());
+			if (debugingMode) {
+				System.out.printf("\n>>>>>Node: %s\n", node.getNodeName());
+			}
 			// get top K tweets of the current subtopic
 			int count = 0;
 			while (count < Configure.TWEETS_IN_EACH_SUBTOPIC && queue.size() > 0) {
@@ -362,7 +381,9 @@ public class SummarizationModel {
 				Tweet currentTweet = textTweetMap.get(maxKey.getStrKey());
 				if (shouldAddANewTweet(currentTweet, union.keySet())) {
 					union.put(currentTweet, currentTweet.getTerms(preprocessingUtils));
-					System.out.println(currentTweet.getText());
+					if (debugingMode) {
+						System.out.println(currentTweet.getText());
+					}
 					count++;
 				}
 			}
@@ -381,7 +402,7 @@ public class SummarizationModel {
 		List<Tweet> listOfTweets = new ArrayList<Tweet>(input.keySet());
 		HashMap<Tweet, Double> tweetSimilarityMap = new HashMap<Tweet, Double>();
 		tweetSimilarityMap.put(listOfTweets.get(0), 0.0);
-		for (int i = 0; i < listOfTweets.size()-1; i++) {
+		for (int i = 0; i < listOfTweets.size() - 1; i++) {
 			double sum = 0;
 			for (int j = i + 1; j < listOfTweets.size(); j++) {
 				double score = getJaccardScore(input.get(listOfTweets.get(i)), input.get(listOfTweets.get(j)));
@@ -394,33 +415,36 @@ public class SummarizationModel {
 			double currentScore = tweetSimilarityMap.get(listOfTweets.get(i));
 			tweetSimilarityMap.put(listOfTweets.get(i), sum + currentScore);
 		}
-		
+
 		// remove redundancy
 		double sumOfUtility = 0;
-		while(true) {
+		while (true) {
 			// get the best tweet
 			double utility = 0;
 			Tweet bestTweet = null;
-			for(Tweet t: listOfTweets) {
-				if(tweetSimilarityMap.get(t) > utility) {
+			for (Tweet t : listOfTweets) {
+				if (tweetSimilarityMap.get(t) > utility) {
 					bestTweet = t;
 					utility = tweetSimilarityMap.get(t);
 				}
 			}
-			sumOfUtility +=utility;
-		//	System.out.printf("utility: %f\n", utility);
-			if(utility/sumOfUtility < Configure.JACCARD_UTILITY)
+			sumOfUtility += utility;
+			// System.out.printf("utility: %f\n", utility);
+			if (utility / sumOfUtility < Configure.JACCARD_UTILITY)
 				break;
-			System.out.println(bestTweet.getText());
+			if (debugingMode) {
+				System.out.println(bestTweet.getText());
+			}
 			output.add(bestTweet);
 			listOfTweets.remove(bestTweet);
-			//reduce score of remaining tweets
-			for(Tweet t: listOfTweets) {
-				tweetSimilarityMap.put(t, tweetSimilarityMap.get(t) - getJaccardScore(input.get(t), input.get(bestTweet)));
-				//System.out.println("fff"+tweetSimilarityMap.get(t));
+			// reduce score of remaining tweets
+			for (Tweet t : listOfTweets) {
+				tweetSimilarityMap.put(t,
+						tweetSimilarityMap.get(t) - getJaccardScore(input.get(t), input.get(bestTweet)));
+				// System.out.println("fff"+tweetSimilarityMap.get(t));
 			}
 		}
-		System.out.println(output.size());
+		// System.out.println(output.size());
 		return output;
 	}
 
@@ -602,7 +626,8 @@ public class SummarizationModel {
 
 			// get top K tweets of the subtopic
 			PriorityBlockingQueue<KeyValue_Pair> queue = new PriorityBlockingQueue<KeyValue_Pair>();
-			// HashMap<String, Tweet> queueTweetMap = new HashMap<String, Tweet>();
+			// HashMap<String, Tweet> queueTweetMap = new HashMap<String,
+			// Tweet>();
 			for (Map.Entry<Tweet, Double> tweet : tweetSimilarityMap.entrySet()) {
 				String text = tweet.getKey().getText();
 				Double score = tweet.getValue();
@@ -618,8 +643,8 @@ public class SummarizationModel {
 						queue.add(new KeyValue_Pair(text, score));
 
 						/*
-						 * queueTweetMap.remove(removedTweet.getStrKey()); queueTweetMap.put(text,
-						 * tweet.getKey());
+						 * queueTweetMap.remove(removedTweet.getStrKey());
+						 * queueTweetMap.put(text, tweet.getKey());
 						 */
 					}
 				}
@@ -788,12 +813,10 @@ public class SummarizationModel {
 	public void buildAliasSampler() {
 
 		for (Node node : affectedNodesByAdding) {
-
 			node.updateAliasSampler();
 		}
 
 		for (Node node : affectedNodesByRemoving) {
-
 			if (affectedNodesByAdding.contains(node)) {
 				continue;
 			}
@@ -801,26 +824,20 @@ public class SummarizationModel {
 		}
 
 		for (Node node : newNodes) {
-
 			node.updateAliasSampler();
 		}
 	}
 
-	public double[] getWeightOfOutgoingEdges(ArrayList<DefaultWeightedEdge> edges) {
-
-		double[] distribution = new double[edges.size()];
-		double sum = 0;
-		int i = 0;
-		for (DefaultWeightedEdge edge : edges) {
-			distribution[i] = graph.getEdgeWeight(edge);
-			sum += distribution[i];
-			i++;
-		}
-		for (i = 0; i < distribution.length; i++) {
-			distribution[i] = distribution[i] / sum;
-		}
-		return distribution;
-	}
+	/*
+	 * public double[] getWeightOfOutgoingEdges(ArrayList<DefaultWeightedEdge>
+	 * edges) {
+	 * 
+	 * double[] distribution = new double[edges.size()]; double sum = 0; int i =
+	 * 0; for (DefaultWeightedEdge edge : edges) { distribution[i] =
+	 * graph.getEdgeWeight(edge); sum += distribution[i]; i++; } for (i = 0; i <
+	 * distribution.length; i++) { distribution[i] = distribution[i] / sum; }
+	 * return distribution; }
+	 */
 
 	public void printCandidates(Formatter format) {
 		for (int i = 0; i < candidates.size(); i++) {

@@ -9,9 +9,10 @@ public class TestSumblr {
 		new Configure();
 		long startTime = System.currentTimeMillis();
 		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
+		String outputDir = Configure.WORKING_DIRECTORY + "\\output";
 
 		TweetStream stream = new TweetStream(inputDir);
-		Sumblr model = new Sumblr(stream);
+		Sumblr model = new Sumblr(stream, outputDir);
 		System.out.println("start");
 		model.process();
 		System.out.println("done");

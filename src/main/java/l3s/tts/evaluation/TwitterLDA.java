@@ -665,7 +665,7 @@ public class TwitterLDA {
 				List<Integer> topIndexes = RankingUtils.getIndexTopElements(1, sumProbUniqueWords);
 				for (int j : topIndexes) {
 					String tweetId = windows.get(w).tweets[j].tweetID;
-					double p = windows.get(w).tweets[j].inferedPosteriorProb;
+					// double p = windows.get(w).tweets[j].inferedPosteriorProb;
 					/*
 					 * bw.write(String.format("%d\t%d\t%f\t%f\t%s\n", w, z,
 					 * windows.get(w).topicDistribution[z], p,

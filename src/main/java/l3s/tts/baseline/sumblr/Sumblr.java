@@ -1,5 +1,7 @@
 package l3s.tts.baseline.sumblr;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,11 +21,13 @@ public class Sumblr {
 
 	private HashMap<Integer, TCV> clusters;
 	private TweetStream stream;
+	private String outputPath;
+
 	private long refTime;
 	private int nClusters;
 	private long nextUpdate;
 	private int nTweets;
-	private int currentTime;
+	private int currentTimeStep;
 	private HashMap<String, Integer> termTweetCount;
 	private TweetPreprocessingUtils preprocessingUtils;
 	private LexRank lexRanker;
@@ -67,8 +71,10 @@ public class Sumblr {
 
 	}
 
-	public Sumblr(TweetStream _stream) {
+	public Sumblr(TweetStream _stream, String _outputPath) {
 		stream = _stream;
+		outputPath = _outputPath;
+
 		clusters = new HashMap<Integer, TCV>();
 		preprocessingUtils = new TweetPreprocessingUtils();
 		termTweetCount = new HashMap<String, Integer>();
@@ -77,9 +83,10 @@ public class Sumblr {
 		Tweet tweet = stream.getTweet();
 		nTweets = 1;
 		refTime = tweet.getPublishedTime();
-		currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-		tweet.setTimeStep(currentTime);
-		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+		nextUpdate = refTime + Configure.TIME_STEP_WIDTH;
+		currentTimeStep = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
+		tweet.setTimeStep(currentTimeStep);
+
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		for (String term : terms) {
 			if (termTweetCount.containsKey(term)) {
@@ -160,7 +167,7 @@ public class Sumblr {
 					termTweetCount.put(term, 1);
 				}
 			}
-			currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
+			currentTimeStep = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
 			tweet.buildVector(termTweetCount, nTweets);
 			TCV cluster = chooseCluster(tweet);
 			if (cluster != null) {
@@ -171,7 +178,7 @@ public class Sumblr {
 				nClusters++;
 			}
 			if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nTweets % Configure.TWEET_WINDOW == 0)
-					|| (Configure.updatingType == UpdatingType.PERIOD && tweet.getPublishedTime() > nextUpdate)) {
+					|| (Configure.updatingType == UpdatingType.PERIOD && tweet.getPublishedTime() >= nextUpdate)) {
 				genSummary();
 				nextUpdate += Configure.TIME_STEP_WIDTH;
 			}
@@ -190,7 +197,20 @@ public class Sumblr {
 		}
 		System.out.printf(" -------------- #tweets = %d\n", tweets.size());
 		List<Tweet> selectedTwets = lexRanker.summary(tweets, 0.2, true, 5, 0.5);
-		System.out.printf("******************time = %d***********\n", currentTime);
+
+		try {
+			BufferedWriter bw = new BufferedWriter(
+					new FileWriter(String.format("%s/%d_sumblr.txt", outputPath, currentTimeStep)));
+			for (Tweet tweet : selectedTwets) {
+				bw.write(String.format("%s\n", tweet.getText().replace("\n", " ")));
+			}
+			bw.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+
+		System.out.printf("******************time = %d***********\n", currentTimeStep);
 		for (Tweet tweet : selectedTwets) {
 			System.out.printf("[selected tweet] %s\n", tweet.getText());
 		}
@@ -201,7 +221,7 @@ public class Sumblr {
 	 */
 	private void deleteOutdateClusters() {
 		System.out.println("deleting outdate clusters");
-		long outdatedThreshold = currentTime - Configure.FORGOTTEN_WINDOW_DISTANCE;
+		long outdatedThreshold = currentTimeStep - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		List<Integer> removeIDs = new ArrayList<Integer>();
 		for (TCV cluster : clusters.values()) {
 			// Try to forget old clusters

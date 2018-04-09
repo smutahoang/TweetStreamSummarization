@@ -1,5 +1,7 @@
 package l3s.tts.baseline.lexrank;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -44,10 +46,13 @@ public class LexRank {
 	}
 
 	private TweetStream stream;
+	private int K;
+	private String outputPath;
+
 	private long refTime;
 	private long nextUpdate;
 	private int nTweets;
-	private int currentTime;
+	private int currentTimeStep;
 	private LinkedList<Tweet> recentTweets;
 	private HashMap<String, Integer> termTweetCount;
 	private TweetPreprocessingUtils preprocessingUtils;
@@ -233,8 +238,11 @@ public class LexRank {
 	 * 
 	 * @param _stream
 	 */
-	public LexRank(TweetStream _stream) {
+	public LexRank(TweetStream _stream, int _K, String _outputPath) {
 		stream = _stream;
+		K = _K;
+		outputPath = _outputPath;
+
 		preprocessingUtils = new TweetPreprocessingUtils();
 		recentTweets = new LinkedList<Tweet>();
 		termTweetCount = new HashMap<String, Integer>();
@@ -242,9 +250,11 @@ public class LexRank {
 		Tweet tweet = stream.getTweet();
 		nTweets = 1;
 		refTime = tweet.getPublishedTime();
-		currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-		tweet.setTimeStep(currentTime);
-		nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+		nextUpdate = refTime + Configure.TIME_STEP_WIDTH;
+
+		currentTimeStep = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
+		tweet.setTimeStep(currentTimeStep);
+
 		List<String> terms = tweet.getTerms(preprocessingUtils);
 		for (String term : terms) {
 			if (termTweetCount.containsKey(term)) {
@@ -260,8 +270,8 @@ public class LexRank {
 		Tweet tweet = null;
 		while ((tweet = stream.getTweet()) != null) {
 			nTweets++;
-			currentTime = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
-			tweet.setTimeStep(currentTime);
+			currentTimeStep = TimeUtils.getElapsedTime(tweet.getPublishedTime(), refTime, Configure.TIME_STEP_WIDTH);
+			tweet.setTimeStep(currentTimeStep);
 			List<String> terms = tweet.getTerms(preprocessingUtils);
 			for (String term : terms) {
 				if (termTweetCount.containsKey(term)) {
@@ -287,18 +297,30 @@ public class LexRank {
 			tweet.buildVector(termTweetCount, recentTweets.size());
 			tweets.add(tweet);
 		}
-		List<Tweet> selectedTwets = summary(tweets, 0.2, true, 5, 0.5);
-		System.out.printf("******************time = %d***********\n", currentTime);
+		List<Tweet> selectedTwets = summary(tweets, 0.2, true, K, 0.5);
+		try {
+			BufferedWriter bw = new BufferedWriter(
+					new FileWriter(String.format("%s/%d_lexrank.txt", outputPath, currentTimeStep)));
+			for (Tweet tweet : selectedTwets) {
+				bw.write(String.format("%s\n", tweet.getText().replace("\n", " ")));
+			}
+			bw.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+
+		System.out.printf("******************time = %d***********\n", currentTimeStep);
 		for (Tweet tweet : selectedTwets) {
 			System.out.printf("[selected tweet] %s\n", tweet.getText());
 		}
 	}
 
 	private void removeOldTweets() {
-		if (currentTime <= Configure.FORGOTTEN_WINDOW_DISTANCE) {
+		if (currentTimeStep <= Configure.FORGOTTEN_WINDOW_DISTANCE) {
 			return;
 		}
-		int lastTimeStep = currentTime - Configure.FORGOTTEN_WINDOW_DISTANCE;
+		int lastTimeStep = currentTimeStep - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		while (true) {
 			if (recentTweets.getFirst().getTimeStep() <= lastTimeStep) {
 				Tweet tweet = recentTweets.removeFirst();
