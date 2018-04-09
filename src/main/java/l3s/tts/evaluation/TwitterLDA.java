@@ -38,7 +38,7 @@ public class TwitterLDA {
 	private int nTopics;
 
 	private int burningPeriod = 50;
-	private int maxIteration = 100;
+	private int maxIteration = 50;
 	private int samplingGap = 10;
 
 	private Random rand;
@@ -74,6 +74,8 @@ public class TwitterLDA {
 		recentTweets = new LinkedList<Tweet>();
 		allTweets = new LinkedList<Tweet>();
 		tweetId2Index = new HashMap<String, Integer>();
+
+		// first tweet
 		Tweet tweet = stream.getTweet();
 		nTweets = 1;
 		refTime = tweet.getPublishedTime();
@@ -96,7 +98,7 @@ public class TwitterLDA {
 			allTweets.add(tweet);
 			nTweets++;
 			if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nTweets % Configure.TWEET_WINDOW == 0)
-					|| (Configure.updatingType == UpdatingType.PERIOD && tweet.getPublishedTime() >= nextUpdate)) {
+					|| (Configure.updatingType == UpdatingType.PERIOD && tweet.getPublishedTime() > nextUpdate)) {
 				removeOldTweets();
 				List<Tweet> tweets = new ArrayList<Tweet>();
 				for (Tweet rTweet : recentTweets) {
@@ -629,6 +631,21 @@ public class TwitterLDA {
 		outputWindowTopicDistribution();
 	}
 
+	private double getJCSimilarity(Tweet tweetA, Tweet tweetB) {
+		double jc = 0;
+		HashSet<String> termsA = new HashSet<String>(tweetA.getTerms(preprocessingUtils));
+		HashSet<String> termsB = new HashSet<String>(tweetB.getTerms(preprocessingUtils));
+
+		int nCommons = 0;
+		for (String term : termsA) {
+			if (termsB.contains(term)) {
+				nCommons++;
+			}
+		}
+		jc = ((double) nCommons) / (termsA.size() + termsB.size() - nCommons);
+		return jc;
+	}
+
 	private void selectRepresentativeTweets(int w, double sumProb) {
 		try {
 			int[] topicTweetCount = new int[nTopics];
@@ -636,7 +653,8 @@ public class TwitterLDA {
 				topicTweetCount[i] = 0;
 			}
 			for (int t = 0; t < windows.get(w).tweets.length; t++) {
-				if (windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
+				if (windows.get(w).tweets[t].terms.length >= 3
+						&& windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
 					topicTweetCount[windows.get(w).tweets[t].inferedTopic]++;
 				}
 			}
@@ -646,16 +664,17 @@ public class TwitterLDA {
 				topicTweetCount[i] = 0;
 			}
 			for (int t = 0; t < windows.get(w).tweets.length; t++) {
-				if (windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
+				if (windows.get(w).tweets[t].terms.length >= 3
+						&& windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
 					int z = windows.get(w).tweets[t].inferedTopic;
 					topicTweets[z][topicTweetCount[z]] = t;
 					topicTweetCount[z]++;
 				}
 			}
 
+			List<Tweet> representativeTweets = new ArrayList<Tweet>();
 			List<Integer> topTopics = RankingUtils.getIndexTopElements(windows.get(w).topicDistribution, sumProb);
-			BufferedWriter bw = new BufferedWriter(
-					new FileWriter(String.format("%s/representativeTweets_%d.txt", outputPath, w)));
+
 			for (int z : topTopics) {
 				double[] sumProbUniqueWords = new double[topicTweetCount[z]];
 				for (int i = 0; i < topicTweetCount[z]; i++) {
@@ -665,18 +684,29 @@ public class TwitterLDA {
 				List<Integer> topIndexes = RankingUtils.getIndexTopElements(1, sumProbUniqueWords);
 				for (int j : topIndexes) {
 					String tweetId = windows.get(w).tweets[j].tweetID;
-					// double p = windows.get(w).tweets[j].inferedPosteriorProb;
-					/*
-					 * bw.write(String.format("%d\t%d\t%f\t%f\t%s\n", w, z,
-					 * windows.get(w).topicDistribution[z], p,
-					 * allTweets.get(tweetId2Index.get(tweetId)).getText().
-					 * replace("\n", " ")));
-					 */
-					bw.write(String.format("%s\n",
-							allTweets.get(tweetId2Index.get(tweetId)).getText().replace("\n", " ")));
+					representativeTweets.add(allTweets.get(tweetId2Index.get(tweetId)));
+				}
+			}
+
+			boolean[] mark = new boolean[representativeTweets.size()];
+			for (int i = 0; i < mark.length; i++) {
+				mark[i] = true;
+			}
+			BufferedWriter bw = new BufferedWriter(new FileWriter(
+					String.format("%s/representativeTweets_%d.txt", outputPath, windows.get(w).windowId)));
+			for (int i = 0; i < mark.length; i++) {
+				if (!mark[i]) {
+					continue;
+				}
+				bw.write(String.format("%s\n", representativeTweets.get(i).getText().replace("\n", " ")));
+				for (int j = i + 1; j < mark.length; j++) {
+					if (getJCSimilarity(representativeTweets.get(i), representativeTweets.get(j)) >= 0.5) {
+						mark[j] = false;
+					}
 				}
 			}
 			bw.close();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(-1);
