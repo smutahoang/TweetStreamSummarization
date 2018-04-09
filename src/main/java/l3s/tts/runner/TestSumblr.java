@@ -8,8 +8,8 @@ public class TestSumblr {
 	public static void main(String[] args) {
 		new Configure();
 		long startTime = System.currentTimeMillis();
-		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
-		String outputDir = Configure.WORKING_DIRECTORY + "\\output";
+		String inputDir = Configure.WORKING_DIRECTORY + "/input";
+		String outputDir = Configure.WORKING_DIRECTORY + "/output/sumblr";
 
 		TweetStream stream = new TweetStream(inputDir);
 		Sumblr model = new Sumblr(stream, outputDir);

@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 
+import l3s.tts.configure.Configure;
+
 /**
  * 
  * @author Huyen Nguyen
@@ -31,6 +33,12 @@ public class TweetStream {
 		fileList = streamFolder.listFiles();
 		int currentFile = 0;
 		openFile(fileList[currentFile]);
+
+		// ignore some first tweets for the case
+		// when tweet frequency is quite low at the begining of the stream
+		for (int i = 0; i < Configure.NUM_IGNORED_TWEETS; i++) {
+			getTweet();
+		}
 	}
 
 	/***

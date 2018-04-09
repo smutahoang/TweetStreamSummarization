@@ -22,15 +22,16 @@ public class OpinosisSummarization extends SummarizationModel {
 	private int currentTime;
 	private long refTime;
 	private int nOfTweets;
-	private static String outputPath = Configure.WORKING_DIRECTORY +"/output/baselines/opinosis";
+	private String outputPath;
 
-	public OpinosisSummarization(TweetStream stream) {
-		this.stream = stream;
+	public OpinosisSummarization(TweetStream _stream, String _outputPath) {
+		this.stream = _stream;
+		this.outputPath = _outputPath;
 		recentTweets = new LinkedList<Tweet>();
 
 		// first tweet
 
-		Tweet tweet = stream.getTweet();
+		Tweet tweet = _stream.getTweet();
 		tweet.tagTokens(preprocessingUtils);
 		recentTweets.add(tweet);
 		tweet.setIndex(0);
@@ -73,14 +74,13 @@ public class OpinosisSummarization extends SummarizationModel {
 
 		// System.out.println("number of nodes: " + graph.vertexSet().size());
 		// System.out.println("number of edges: " + graph.edgeSet().size());
-		
-		
+
 		try {
 			FileWriter file = new FileWriter(String.format("%s/representativeTweets_%d.txt", outputPath, currentTime));
 			BufferedWriter buff = new BufferedWriter(file);
 			removeOldTweets();
 			findingCandidates();
-			
+
 			System.out.println("____________________________________");
 			List<Candidate> theSentenceInfos = getFinalSentences();
 			for (Candidate info : theSentenceInfos) {
@@ -98,10 +98,6 @@ public class OpinosisSummarization extends SummarizationModel {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		
-		
-		
 
 	}
 
@@ -111,7 +107,7 @@ public class OpinosisSummarization extends SummarizationModel {
 	}
 
 	private void removeOldTweets() {
-		
+
 		if (currentTime <= Configure.FORGOTTEN_WINDOW_DISTANCE) {
 			return;
 		}

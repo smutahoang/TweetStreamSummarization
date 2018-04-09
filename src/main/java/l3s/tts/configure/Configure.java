@@ -16,6 +16,9 @@ public class Configure {
 		TOPIC_COUNT, NOVELTY
 	}
 
+	//
+	public static int NUM_IGNORED_TWEETS = 200;
+
 	// constants for directory
 	public static String STOPWORD_PATH;
 	public static String WORKING_DIRECTORY;

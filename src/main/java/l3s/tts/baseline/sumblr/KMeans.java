@@ -52,6 +52,11 @@ public class KMeans {
 			membership[i] = c;
 			nMembers[c]++;
 		}
+
+		for (int c = 0; c < nMembers.length; c++) {
+			System.out.printf("cluster = %d #tweets = %d\n", c, nMembers[c]);
+		}
+
 		for (int iter = 0; iter < Configure.SUMBLR_NUMBER_KMEANS_ITERATIONS; iter++) {
 			HashMap<Integer, HashMap<String, Double>> means = findMeans(tweets, membership, nMembers);
 			for (int c = 0; c < nMembers.length; c++) {

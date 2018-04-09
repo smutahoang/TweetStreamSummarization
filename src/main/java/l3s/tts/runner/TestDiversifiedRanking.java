@@ -8,10 +8,10 @@ public class TestDiversifiedRanking {
 	public static void main(String[] args) {
 		new Configure();
 		long startTime = System.currentTimeMillis();
-		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
-		String outputDir = Configure.WORKING_DIRECTORY + "\\output";
+		String inputDir = Configure.WORKING_DIRECTORY + "/input";
+		String outputDir = Configure.WORKING_DIRECTORY + "/output/inc";
 
-		TweetStream stream = new TweetStream(inputDir);
+		TweetStream stream = new TweetStream(inputDir);		
 		IncrementalModel model = new IncrementalModel(stream, outputDir);
 		System.out.println("start");
 		model.run();

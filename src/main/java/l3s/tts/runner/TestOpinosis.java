@@ -8,16 +8,16 @@ public class TestOpinosis {
 	public static void main(String[] args) {
 		new Configure();
 		long startTime = System.currentTimeMillis();
-		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
-		
+		String inputDir = Configure.WORKING_DIRECTORY + "/input";
+		String outputDir = Configure.WORKING_DIRECTORY + "/output/opinosis";
+
 		TweetStream stream = new TweetStream(inputDir);
-		OpinosisSummarization model = new OpinosisSummarization(stream);
+		OpinosisSummarization model = new OpinosisSummarization(stream, outputDir);
 		System.out.println("start");
 		model.run();
-		
+
 		long endTime = System.currentTimeMillis();
 		System.out.printf("%s: %dms\n", "Running time", endTime - startTime);
 	}
 
-	
 }

@@ -1,4 +1,4 @@
-package l3s.tts.runner;
+package l3s.tts.evaluation;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

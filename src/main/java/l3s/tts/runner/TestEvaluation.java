@@ -9,10 +9,11 @@ public class TestEvaluation {
 		new Configure();
 		long startTime = System.currentTimeMillis();
 		String inputDir = Configure.WORKING_DIRECTORY + "/input";
-		String outputDir = Configure.WORKING_DIRECTORY + "/output/evaluation";
+		String outputDir = Configure.WORKING_DIRECTORY + "/output/groundtruth";
 
 		TweetStream stream = new TweetStream(inputDir);
 		TwitterLDA evaluator = new TwitterLDA(stream, 10, outputDir);
+		
 		System.out.println("start");
 		evaluator.genSummary();
 		System.out.println("done");
