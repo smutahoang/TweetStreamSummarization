@@ -45,7 +45,7 @@ public class Configure {
 	// constants for updating model
 	public final static UpdatingType updatingType = UpdatingType.PERIOD;
 	public final static IgnoringType ignoringType = IgnoringType.NOVELTY;
-	public static int TWEET_WINDOW = 1000; // update every 1000 tweets
+	public static int TWEET_WINDOW = 6; // update every 1000 tweets
 	public final static long TIME_STEP_WIDTH = 60 * 60 * 1000;// 60 mins;
 	public static int NUMBER_OF_REMOVING_TWEETS = 100;// for updating step
 	public static int FORGOTTEN_WINDOW_DISTANCE = 12;
@@ -90,18 +90,52 @@ public class Configure {
 	public static int SUMBLR_NUMBER_KMEANS_ITERATIONS = 10;
 
 	public static int LEXRANK_NUM_ITERATIONS = 50;
+	
+	// constants for opinosis model
+	
+	public enum scoreFunction {
+		GAIN_REDUNDANCY_ONLY, GAIN_WEIGHTED_REDUNDANCY_BY_LEVEL, GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL
+	}
+	public static String TAGGING_MODEL;
+	public static int PERMISSABLE_GAP = 3;
+	public static int VSN_POS = 15; // pos thresold of a valid starting node
+	public static String ENDTOKENS = ".*(/\\.|/,)";
+	public static String STOP_ADDING = "(\\./\\.|!/!|\\?/\\?)";
+	public static String VSN_TAGs = ".*(/jj|/rb|/prp$|/vbg|/nn|/dt).*";
+	public static String VSN_NAME = "^(its/|the/|when/|a/|an/|this/|the/|they/|it/|i/|we/|our/|if/|for/).*";
+	
+	public static String VALID_CANDIDATE1 = ".*(/jj)*.*(/nn)+.*(/vb)+.*(/jj)+.*";
+	public static String VALID_CANDIDATE2 = ".*(/dt).*";
+	public static String VALID_CANDIDATE3 = ".*(/rb)*.*(/jj)+.*(/nn)+.*";
+	public static String VALID_CANDIDATE4 = ".*(/prp|/dt)+.*(/vb)+.*(/rb|/jj)+.*(/nn)+.*";
+	public static String VALID_CANDIDATE5 = ".*(/jj)+.*(/to)+.*(/vb).*";
+	public static String VALID_CANDIDATE6 = ".*(/rb)+.*(/in)+.*(/nn)+.*";
+	public static String VALID_CANDIDATE7 = ".*(/to|/vbz|/in|/cc|wdt|/prp|/dt|/,)";
+	public static String OVERLAP_NODE = ".*(/vb[a-z]|/in)"; // a node is a collapsible node if it is a verb
+
+	public static int MIN_REDUNDANCY = 2;
+	public static int P_MAX_SENT_LENGTH = 18;
+	public static double DUPLICATE_THRESOLD = 0.35;
+	public static double REMOVING_DUPLICATE_THRESOLD = 0.5;
+	public static boolean IS_COLLAPSE = true;
+	public static int ATTACHMENT_AFTER = 2;
+	public static boolean TURN_ON_DUP_ELIM = true;
+	public static boolean NORMALIZE_OVERALLGAIN = true;
+	public static int MAX_SUMMARIES = 5;
+	public static double DUPLICATE_COLLAPSE_THRESHOLD = 0.5;
+	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
-		// WORKING_DIRECTORY =
-		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
+		 WORKING_DIRECTORY =
+		 "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		//WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 
 		stopWords = getStopWords();
-
+		TAGGING_MODEL = WORKING_DIRECTORY + "/taggingModel/model.irc.20121211";
 	}
 
 	// public HashSet<String> getStopWords()

@@ -4,7 +4,7 @@ import l3s.tts.configure.Configure;
 import l3s.tts.summary.IncrementalModel;
 import l3s.tts.utils.TweetStream;
 
-public class Tester {
+public class TestDiversifiedRanking {
 	public static void main(String[] args) {
 		new Configure();
 		long startTime = System.currentTimeMillis();

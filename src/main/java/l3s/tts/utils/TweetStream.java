@@ -48,7 +48,7 @@ public class TweetStream {
 
 	public Tweet getTweet() {
 		Tweet tweet = null;
-		String line;
+		String line = null;
 		try {
 			line = buff.readLine();
 			while (true) {
@@ -80,6 +80,7 @@ public class TweetStream {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			System.out.println(line);
 			e.printStackTrace();
 			System.exit(-1);
 		}

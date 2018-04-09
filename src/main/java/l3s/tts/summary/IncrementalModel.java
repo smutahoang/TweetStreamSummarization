@@ -1,6 +1,9 @@
 package l3s.tts.summary;
 
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Formatter;
 import java.util.HashMap;
@@ -21,7 +24,7 @@ public class IncrementalModel extends SummarizationModel {
 	private TweetStream stream;
 	private Formatter format;
 	private LinkedList<Tweet> recentTweets;
-
+	private static String outputPath = Configure.WORKING_DIRECTORY +"/output/baselines/diversifiedRanking";
 	public IncrementalModel() {
 		super();
 	}
@@ -69,43 +72,63 @@ public class IncrementalModel extends SummarizationModel {
 			nOfTweets++;
 			// set an option for updating every window time or every #tweets
 
-			if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets == Configure.TWEET_WINDOW)
-					|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex == 0
-							&& tweet.getPublishedTime() > nextUpdate)) {
+			FileWriter file;
+			try {
+				file = new FileWriter(String.format("%s/representativeTweets_%d.txt", outputPath, windowIndex));
+				BufferedWriter buff = new BufferedWriter(file);
+				
+				if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets == Configure.TWEET_WINDOW)
+						|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex == 0
+								&& tweet.getPublishedTime() > nextUpdate)) {
 
-				System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
-				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
-				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
-				endTime = System.currentTimeMillis();
-				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
-				generateSummary();
-				windowIndex++;
-				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
-				startTime = System.currentTimeMillis();
+					System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
+					System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
+					System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
+					endTime = System.currentTimeMillis();
+					System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
+					Set<Tweet> result = generateSummary();
+					printFile(result, buff);
+					windowIndex++;
+					nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+					startTime = System.currentTimeMillis();
 
-			} // if it is time to update
-			else if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets % Configure.TWEET_WINDOW == 0)
-					|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex > 0
-							&& tweet.getPublishedTime() > nextUpdate)) {
+				} // if it is time to update
+				else if ((Configure.updatingType == UpdatingType.TWEET_COUNT && nOfTweets % Configure.TWEET_WINDOW == 0)
+						|| (Configure.updatingType == UpdatingType.PERIOD && windowIndex > 0
+								&& tweet.getPublishedTime() > nextUpdate)) {
 
-				System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
-				System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
-				System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
-				endTime = System.currentTimeMillis();
-				System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
-				update();
-				windowIndex++;
-				nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
-				startTime = System.currentTimeMillis();
+					System.out.printf("\n-----NUMBER OF CONSIDERING TWEETS: %d\n", recentTweets.size());
+					System.out.printf("\n-----NUMBER OF NEW NODES: %d\n", newNodes.size());
+					System.out.printf("\n-----NUMBER OF NODES IN THE GRAPH: %d\n", wordNodeMap.size());
+					endTime = System.currentTimeMillis();
+					System.out.printf("Time for reading tweets: %d\n", (endTime - startTime));
+					Set<Tweet> result = update();
+					printFile(result, buff);
+					windowIndex++;
+					nextUpdate = tweet.getPublishedTime() + Configure.TIME_STEP_WIDTH;
+					startTime = System.currentTimeMillis();
 
+				}
+				
+				buff.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
+			
 			// System.out.println(nOfTweets);
 		}
 		format.close();
 
 	}
+	
+	public void printFile(Set<Tweet> tweets, BufferedWriter buff) throws IOException {
+		for(Tweet tweet: tweets) {
+			buff.write(String.format("%s\n", tweet.getText()));
+		}
+	}
 
-	public void update() {
+	public Set<Tweet> update() {
 		long time1 = System.currentTimeMillis();
 		removeOldestTweets();
 
@@ -130,7 +153,7 @@ public class IncrementalModel extends SummarizationModel {
 		checkOverlapping();
 
 		long time7 = System.currentTimeMillis();
-		getTopKDiversifiedTweets(subtopics);
+		Set<Tweet> result = getTopKDiversifiedTweets(subtopics);
 
 		long time8 = System.currentTimeMillis();
 
@@ -146,6 +169,7 @@ public class IncrementalModel extends SummarizationModel {
 		System.out.printf(">>>>>>>>>>>TIME FOR COMPUTING PAGERANK OF ALL NODES: %d\n", (time6 - time5));
 		System.out.printf(">>>>>>>>>>>TIME FOR GETTING SUBTOPICS: %d\n", (time7 - time6));
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time8 - time7));
+		return result;
 	}
 
 	public void removeOldestTweets() {
@@ -288,7 +312,7 @@ public class IncrementalModel extends SummarizationModel {
 		}
 	}
 
-	public void generateSummary() {
+	public Set<Tweet> generateSummary() {
 		long time1 = System.currentTimeMillis();
 		buildAliasSampler();
 
@@ -308,7 +332,7 @@ public class IncrementalModel extends SummarizationModel {
 
 		checkOverlapping();
 		long time6 = System.currentTimeMillis();
-		getTopKDiversifiedTweets(subtopics);
+		Set<Tweet> result = getTopKDiversifiedTweets(subtopics);
 
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
@@ -321,7 +345,7 @@ public class IncrementalModel extends SummarizationModel {
 		System.out.printf(">>>>>>>>>>>TIME FOR COMPUTING PAGERANK OF ALL NODES: %d\n", (time5 - time4));
 		System.out.printf(">>>>>>>>>>>TIME FOR GETTING SUBTOPICS: %d\n", (time6 - time5));
 		System.out.printf(">>>>>>>>>>>TIME FOR GENERATING SUMMARY: %d\n", (time7 - time6));
-
+		return result;
 	}
 
 	public void printTopNodesByPagerank(List<Node> nodeList) {

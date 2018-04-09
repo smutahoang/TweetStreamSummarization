@@ -3,12 +3,15 @@ package l3s.tts.utils;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
 import org.apache.commons.validator.routines.UrlValidator;
 
+import cmu.arktweetnlp.Tagger;
+import cmu.arktweetnlp.Tagger.TaggedToken;
 import l3s.tts.configure.Configure;
 
 public class TweetPreprocessingUtils {
@@ -18,7 +21,7 @@ public class TweetPreprocessingUtils {
 	static HashSet<Character> quoteSymbols;
 	static HashSet<Character> validPrefixSymbols;
 	static HashSet<Character> validSuffixSymbols;
-
+	private Tagger tagger;
 	// static String stopwordPath = "/home/hoang/attt/data/stopwords";
 	// static String stopwordPath =
 	// "E:/code/java/AdaptiveTopicTrackingTwitter/data/stopwords";
@@ -224,7 +227,7 @@ public class TweetPreprocessingUtils {
 		initPrefixSuffixSymbols();
 
 		getStopWords();
-
+		initPosTaggerModel();
 		urlValidator = new UrlValidator();
 	}
 
@@ -232,6 +235,15 @@ public class TweetPreprocessingUtils {
 		init();
 	}
 
+	public void initPosTaggerModel() {
+		tagger = new Tagger();
+		try {
+			tagger.loadModel(Configure.TAGGING_MODEL);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	private void removeOriginalAuthors(char[] chars) {
 		for (int i = 0; i < chars.length; i++) {
 			if (i > chars.length - 4) {
@@ -298,42 +310,6 @@ public class TweetPreprocessingUtils {
 		if (chars[i + 3] != 'p')
 			return false;
 		return true;
-	}
-
-	private void removePunct(char[] chars) {
-		for (int i = 0; i < chars.length; i++) {
-			if (punctuations.contains(chars[i])) {
-				if (i == 0) {// first character
-					chars[i] = ' ';
-					continue;
-				} else if (i == chars.length - 1) {// last character
-					chars[i] = ' ';
-					continue;
-				} else if (chars[i - 1] == ' ') {// first character of the word
-					chars[i] = ' ';
-					continue;
-				} else if (chars[i + 1] == ' ') {// last character of the word
-					chars[i] = ' ';
-					continue;
-				} else if (isURLStart(chars, i + 1)) {// right before url
-					chars[i] = ' ';
-					continue;
-				} else if (chars[i] == '.') {// do nothing, in case of url
-					continue;
-				} else if (chars[i] == ':') {// do nothing, in case of url
-					continue;
-				} else if (!Character.isDigit(chars[i - 1])) {
-					chars[i] = ' ';
-					continue;
-				} else if (!Character.isDigit(chars[i + 1])) {
-					chars[i] = ' ';
-					continue;
-				} else {
-					// do nothing
-					continue;
-				}
-			}
-		}
 	}
 
 	private boolean isShorten(char[] chars, int i) {
@@ -600,7 +576,112 @@ public class TweetPreprocessingUtils {
 			System.out.printf("c= %c\n", s);
 		}
 	}
+	
+	private void removePunct(char[] chars) {
+		for (int i = 0; i < chars.length; i++) {
+			if (punctuations.contains(chars[i]) && !String.valueOf(chars[i]).matches(Configure.ENDTOKENS)) {// ignore removing ending tokens
+				if (i == 0) {// first character
+					chars[i] = ' ';
+					continue;
+				} else if (i == chars.length - 1) {// last character
+					chars[i] = ' ';
+					continue;
+				} else if (chars[i - 1] == ' ') {// first character of the word
+					chars[i] = ' ';
+					continue;
+				} else if (chars[i + 1] == ' ') {// last character of the word
+					chars[i] = ' ';
+					continue;
+				} else if (isURLStart(chars, i + 1)) {// right before url
+					chars[i] = ' ';
+					continue;
+				} else if (chars[i] == '.') {// do nothing, in case of url
+					continue;
+				} else if (chars[i] == ':') {// do nothing, in case of url
+					continue;
+				} else if (!Character.isDigit(chars[i - 1])) {
+					chars[i] = ' ';
+					continue;
+				} else if (!Character.isDigit(chars[i + 1])) {
+					chars[i] = ' ';
+					continue;
+				} else {
+					// do nothing
+					continue;
+				}
+			}
+		}
+	}
+	public String normalizeString(String text) {
+		text = text.trim();
+		String end = text.substring(text.length()-1);
+		if(!end.matches(Configure.ENDTOKENS))
+			text = text.concat(".");
+		char[] chars = text.trim().toCharArray();
+		
+		removeNewLineAndTabCharacter(chars);
+		removeOriginalAuthors(chars);
 
+		removeHTMLsymbols(chars);
+		// System.out.printf("After remove symbol:\t");
+		// ptScreen(chars);
+
+		removeQuotationSymbols(chars);
+		// System.out.printf("After remove quotation:\t");
+		// ptScreen(chars);
+
+		// only remove punctuations that are different from end tokens
+		removePunct(chars);
+		// System.out.printf("After remove punctuations and tab:\t");
+		// ptScreen(chars);
+
+		int i = 0;
+		while (i < chars.length) {
+			int j = getWord(chars, i);
+			if (j == i) {
+				i++;
+				continue;
+			}
+			// System.out.printf("\t isNumber = %s", isNumber(chars, i, j));
+			// System.out.printf("\t isHours = %s", isHour(chars, i, j));
+			// System.out.printf("\t isURL = %s", isURL(text, i, j));
+			if (isNumber(chars, i, j)) {
+				i = j;
+			} else if (isHour(chars, i, j)) {
+				i = j;
+			} else if (isURL(text, i, j)) {
+				i = j;
+			} else if (!isEnglish(chars, i, j)) {
+				for (int p = i; p < j; p++) {
+					chars[p] = ' ';
+				}
+				i = j;
+			} else {
+				for (int p = i; p < j; p++) {
+					/*if (punctuations.contains(chars[p])) {
+						chars[p] = ' ';
+					} else {*/
+						chars[p] = Character.toLowerCase(chars[p]);
+					//}
+				}
+				//removeSymbolInWord(chars, i, j); // this will remove . at the end of a word
+				i = j;
+			}
+		}
+		String result = String.valueOf(chars);
+		return result.trim();
+	}
+	/**
+	 * @author Huyen Nguyen
+	 * @param text: a string
+	 * @return the string that is tokenized and tagged
+	 */
+	public List<TaggedToken> getTaggedTokens(String text) {
+		
+		List<TaggedToken> taggedTokens = tagger.tokenizeAndTag(text);
+		return taggedTokens;
+	}
+	
 	public static void main(String[] args) {
 		new Configure();
 		// String text = "trumpâ€™s";
@@ -614,7 +695,7 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "RT @Carsfield_01: .@ChatRevolve op #Periscope: BREAKING: Firearms Incident near UK Parliament outside Westminster https://t.co/0QU69150Mn";
+		String message = "the federal lawsuit will be filed on behalf of more than 20 individuals  #muslimban https://t.co/lDUfnbSLpn";
 		System.out.printf("message = [[%s]]\n", message);
 		List<String> terms = nlpUtils.extractTermInTweet(message);
 
@@ -622,6 +703,8 @@ public class TweetPreprocessingUtils {
 			System.out.printf("\ni = %d term = |%s|", i, terms.get(i));
 		}
 
+		
+		//List<TaggedToken> result = nlpUtils.getTaggedTokens(message);
 	}
 
 }
