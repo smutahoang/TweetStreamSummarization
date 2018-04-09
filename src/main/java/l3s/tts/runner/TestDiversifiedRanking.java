@@ -9,8 +9,8 @@ public class TestDiversifiedRanking {
 		new Configure();
 		long startTime = System.currentTimeMillis();
 		String inputDir = Configure.WORKING_DIRECTORY + "\\input";
-		String outputDir = Configure.WORKING_DIRECTORY + "\\output\\candidates.txt";
-		
+		String outputDir = Configure.WORKING_DIRECTORY + "\\output";
+
 		TweetStream stream = new TweetStream(inputDir);
 		IncrementalModel model = new IncrementalModel(stream, outputDir);
 		System.out.println("start");
@@ -20,5 +20,4 @@ public class TestDiversifiedRanking {
 		System.out.printf("%s: %dms\n", "Running time", endTime - startTime);
 	}
 
-	
 }
