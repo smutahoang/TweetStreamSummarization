@@ -12,7 +12,7 @@ public class TestLexRank {
 		String outputDir = Configure.WORKING_DIRECTORY + "/output/lexrank";
 
 		TweetStream stream = new TweetStream(inputDir);
-		LexRank model = new LexRank(stream, 10, outputDir);
+		LexRank model = new LexRank(stream, 20, outputDir);
 		System.out.println("start");
 		model.process();
 		System.out.println("done");

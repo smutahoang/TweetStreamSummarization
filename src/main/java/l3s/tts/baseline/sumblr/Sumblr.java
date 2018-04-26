@@ -196,7 +196,7 @@ public class Sumblr {
 			}
 		}
 		System.out.printf(" -------------- #tweets = %d\n", tweets.size());
-		List<Tweet> selectedTwets = lexRanker.summary(tweets, 0.2, true, 5, 0.5);
+		List<Tweet> selectedTwets = lexRanker.summary(tweets, 0.2, true, 20, 0.5);
 
 		try {
 			BufferedWriter bw = new BufferedWriter(

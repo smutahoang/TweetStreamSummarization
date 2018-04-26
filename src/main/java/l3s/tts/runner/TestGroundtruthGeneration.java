@@ -12,8 +12,8 @@ public class TestGroundtruthGeneration {
 		String outputDir = Configure.WORKING_DIRECTORY + "/output/groundtruth";
 
 		TweetStream stream = new TweetStream(inputDir);
-		TwitterLDA evaluator = new TwitterLDA(stream, 10, outputDir);
-		
+		TwitterLDA evaluator = new TwitterLDA(stream, 30, outputDir);
+
 		System.out.println("start");
 		evaluator.genSummary();
 		System.out.println("done");

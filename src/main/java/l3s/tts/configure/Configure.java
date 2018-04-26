@@ -127,7 +127,7 @@ public class Configure {
 	public static int ATTACHMENT_AFTER = 2;
 	public static boolean TURN_ON_DUP_ELIM = true;
 	public static boolean NORMALIZE_OVERALLGAIN = true;
-	public static int MAX_SUMMARIES = 5;
+	public static int MAX_SUMMARIES = 20;
 	public static double DUPLICATE_COLLAPSE_THRESHOLD = 0.5;
 	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
 

@@ -76,7 +76,7 @@ public class OpinosisSummarization extends SummarizationModel {
 		// System.out.println("number of edges: " + graph.edgeSet().size());
 
 		try {
-			FileWriter file = new FileWriter(String.format("%s/opinosis_%d.txt", outputPath, currentTime));
+			FileWriter file = new FileWriter(String.format("%s/%d_opinosis.txt", outputPath, currentTime));
 			BufferedWriter buff = new BufferedWriter(file);
 			removeOldTweets();
 			findingCandidates();

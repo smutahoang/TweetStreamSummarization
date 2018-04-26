@@ -426,8 +426,9 @@ public class TwitterLDA {
 	 */
 	private double getTweetLikelihood(int w, int t, int z) {
 		double logLikelihood = 0;
+		Window window = windows.get(w);
 		for (int i = 0; i < windows.get(w).tweets[t].terms.length; i++) {
-			int word = windows.get(w).tweets[t].terms[i];
+			int word = window.tweets[t].terms[i];
 			logLikelihood = logLikelihood + Math.log10(tweetTopics[z][word]);
 		}
 		return logLikelihood;
@@ -455,25 +456,25 @@ public class TwitterLDA {
 
 	private void inferTweetTopic() {
 		for (int w = 0; w < windows.size(); w++) {
-			for (int t = 0; t < windows.get(w).tweets.length; t++) {
-
+			Window window = windows.get(w);
+			for (int t = 0; t < window.tweets.length; t++) {
 				double[] posteriors = new double[nTopics];
 				for (int z = 0; z < nTopics; z++) {
-					posteriors[z] = getTweetLikelihood(w, t, z) + Math.log10(windows.get(w).topicDistribution[z]);
+					posteriors[z] = getTweetLikelihood(w, t, z) + Math.log10(window.topicDistribution[z]);
 				}
 
-				windows.get(w).tweets[t].inferedTopic = -1;
-				windows.get(w).tweets[t].inferedLikelihood = Double.NEGATIVE_INFINITY;
+				window.tweets[t].inferedTopic = -1;
+				window.tweets[t].inferedLikelihood = Double.NEGATIVE_INFINITY;
 				double sum = 0;
 				for (int z = 0; z < nTopics; z++) {
-					if (posteriors[z] > windows.get(w).tweets[t].inferedLikelihood) {
-						windows.get(w).tweets[t].inferedLikelihood = posteriors[z];
-						windows.get(w).tweets[t].inferedTopic = z;
+					if (posteriors[z] > window.tweets[t].inferedLikelihood) {
+						window.tweets[t].inferedLikelihood = posteriors[z];
+						window.tweets[t].inferedTopic = z;
 					}
 					posteriors[z] = Math.pow(10, posteriors[z]);
 					sum += posteriors[z];
 				}
-				windows.get(w).tweets[t].inferedPosteriorProb = posteriors[windows.get(w).tweets[t].inferedTopic] / sum;
+				window.tweets[t].inferedPosteriorProb = posteriors[window.tweets[t].inferedTopic] / sum;
 			}
 		}
 	}
@@ -606,10 +607,10 @@ public class TwitterLDA {
 				file.createNewFile();
 			}
 			BufferedWriter bw = new BufferedWriter(new FileWriter(file.getAbsoluteFile()));
-			for (int e = 0; e < windows.size(); e++) {
-				bw.write(String.format("%d", windows.get(e).windowId));
+			for (int w = 0; w < windows.size(); w++) {
+				bw.write(String.format("%d", windows.get(w).windowId));
 				for (int z = 0; z < nTopics; z++)
-					bw.write(String.format(",%f", windows.get(e).topicDistribution[z]));
+					bw.write(String.format(",%f", windows.get(w).topicDistribution[z]));
 				bw.write("\n");
 			}
 			bw.close();
@@ -648,43 +649,47 @@ public class TwitterLDA {
 
 	private void selectRepresentativeTweets(int w, double sumProb) {
 		try {
+			Window window = windows.get(w);
 			int[] topicTweetCount = new int[nTopics];
 			for (int i = 0; i < nTopics; i++) {
 				topicTweetCount[i] = 0;
 			}
-			for (int t = 0; t < windows.get(w).tweets.length; t++) {
-				if (windows.get(w).tweets[t].terms.length >= 3
-						&& windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
-					topicTweetCount[windows.get(w).tweets[t].inferedTopic]++;
+			for (int t = 0; t < window.tweets.length; t++) {
+				if (window.tweets[t].terms.length >= 3 && window.tweets[t].inferedPosteriorProb >= 0.8) {
+					topicTweetCount[window.tweets[t].inferedTopic]++;
 				}
 			}
 			int[][] topicTweets = new int[nTopics][];
-			for (int i = 0; i < nTopics; i++) {
-				topicTweets[i] = new int[topicTweetCount[i]];
-				topicTweetCount[i] = 0;
+			for (int z = 0; z < nTopics; z++) {
+				topicTweets[z] = new int[topicTweetCount[z]];
+				topicTweetCount[z] = 0;
 			}
-			for (int t = 0; t < windows.get(w).tweets.length; t++) {
-				if (windows.get(w).tweets[t].terms.length >= 3
-						&& windows.get(w).tweets[t].inferedPosteriorProb >= 0.8) {
-					int z = windows.get(w).tweets[t].inferedTopic;
+			for (int t = 0; t < window.tweets.length; t++) {
+				if (window.tweets[t].terms.length >= 3 && window.tweets[t].inferedPosteriorProb >= 0.8) {
+					int z = window.tweets[t].inferedTopic;
 					topicTweets[z][topicTweetCount[z]] = t;
 					topicTweetCount[z]++;
 				}
 			}
 
 			List<Tweet> representativeTweets = new ArrayList<Tweet>();
-			List<Integer> topTopics = RankingUtils.getIndexTopElements(windows.get(w).topicDistribution, sumProb);
+			List<Integer> topTopics = RankingUtils.getIndexTopElements(window.topicDistribution, sumProb);
 
+			BufferedWriter bw = new BufferedWriter(
+					new FileWriter(String.format("%s/tweets_%d.txt", outputPath, window.windowId)));
 			for (int z : topTopics) {
-				double[] sumProbUniqueWords = new double[topicTweetCount[z]];
+				double[] tweetImportance = new double[topicTweetCount[z]];
 				for (int i = 0; i < topicTweetCount[z]; i++) {
 					int t = topicTweets[z][i];
-					sumProbUniqueWords[i] = getTweetSumProbUniqueWord(w, t, z);
+					// tweetImportance[i] = getTweetSumProbUniqueWord(w, t, z);
+					tweetImportance[i] = window.tweets[t].inferedLikelihood / window.tweets[t].terms.length;
 				}
-				List<Integer> topIndexes = RankingUtils.getIndexTopElements(1, sumProbUniqueWords);
+				List<Integer> topIndexes = RankingUtils.getIndexTopElements(1, tweetImportance);
 				for (int j : topIndexes) {
-					String tweetId = windows.get(w).tweets[j].tweetID;
+					String tweetId = window.tweets[j].tweetID;
 					representativeTweets.add(allTweets.get(tweetId2Index.get(tweetId)));
+					bw.write(String.format("%d \t %f \t %s\n", z, window.tweets[j].inferedPosteriorProb,
+							allTweets.get(tweetId2Index.get(tweetId)).getText().replace("\n", " ")));
 				}
 			}
 
@@ -692,8 +697,10 @@ public class TwitterLDA {
 			for (int i = 0; i < mark.length; i++) {
 				mark[i] = true;
 			}
-			BufferedWriter bw = new BufferedWriter(new FileWriter(
-					String.format("%s/representativeTweets_%d.txt", outputPath, windows.get(w).windowId)));
+			bw.close();
+
+			bw = new BufferedWriter(
+					new FileWriter(String.format("%s/representativeTweets_%d.txt", outputPath, window.windowId)));
 			for (int i = 0; i < mark.length; i++) {
 				if (!mark[i]) {
 					continue;

@@ -15,6 +15,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import org.jgrapht.graph.DefaultWeightedEdge;
 import org.jgrapht.graph.SimpleGraph;
 
+import l3s.tts.baseline.lexrank.LexRank;
 import l3s.tts.configure.Configure;
 import l3s.tts.configure.Configure.IgnoringType;
 import l3s.tts.utils.KeyValue_Pair;
@@ -391,7 +392,8 @@ public class SummarizationModel {
 		}
 		System.out.println("\n>>>>>>>>>>>>FINAL RESULT>>>>>>>>>>>>>>>>>>>>");
 		// remove redundancy of the union set
-		Set<Tweet> result = removeRedundancyByDiversifiedRanking(union);
+		// Set<Tweet> result = removeRedundancyByDiversifiedRanking(union);
+		Set<Tweet> result = removeRedundancyByLexRank(union);
 		return result;
 	}
 
@@ -445,6 +447,27 @@ public class SummarizationModel {
 			}
 		}
 		// System.out.println(output.size());
+		return output;
+	}
+
+	private Set<Tweet> removeRedundancyByLexRank(HashMap<Tweet, List<String>> input) {
+		List<Tweet> tweetList = new ArrayList<Tweet>(input.keySet());
+		HashMap<String, Integer> termDF = new HashMap<String, Integer>();
+		for (Tweet tweet : tweetList) {
+			List<String> terms = tweet.getTerms(preprocessingUtils);
+			for (String term : terms) {
+				if (termDF.containsKey(term)) {
+					termDF.put(term, 1 + termDF.get(term));
+				} else {
+					termDF.put(term, 1);
+				}
+			}
+		}
+		for (Tweet tweet : tweetList) {
+			tweet.buildVector(termDF, tweetList.size());
+		}
+		LexRank lexranker = new LexRank();
+		Set<Tweet> output = new HashSet<Tweet>(lexranker.summary(tweetList, 0.3, true, 20, 0.5));
 		return output;
 	}
 
