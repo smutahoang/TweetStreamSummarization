@@ -159,7 +159,7 @@ public class IncrementalModel extends SummarizationModel {
 			return;
 		int lastTimeStep = currentTimeStep - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		while (true) {
-			if (recentTweets.getFirst().getTimeStep() > lastTimeStep)
+			if (recentTweets.getFirst().getTimeStep() >= lastTimeStep)
 				break;
 
 			Tweet tweet = recentTweets.removeFirst();

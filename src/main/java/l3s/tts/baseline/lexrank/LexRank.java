@@ -322,7 +322,7 @@ public class LexRank {
 		}
 		int lastTimeStep = currentTimeStep - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		while (true) {
-			if (recentTweets.getFirst().getTimeStep() <= lastTimeStep) {
+			if (recentTweets.getFirst().getTimeStep() < lastTimeStep) {
 				Tweet tweet = recentTweets.removeFirst();
 				List<String> terms = tweet.getTerms(preprocessingUtils);
 				for (String term : terms) {

@@ -115,7 +115,7 @@ public class OpinosisSummarization extends SummarizationModel {
 		int lastTimeStep = currentTime - Configure.FORGOTTEN_WINDOW_DISTANCE;
 		int count = 0;
 		while (true) {
-			if (recentTweets.getFirst().getTimeStep() <= lastTimeStep) {
+			if (recentTweets.getFirst().getTimeStep() < lastTimeStep) {
 				Tweet tweet = recentTweets.removeFirst();
 				List<TaggedToken> tokens = tweet.getTaggedTokens();
 
