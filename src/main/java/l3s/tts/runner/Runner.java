@@ -14,9 +14,9 @@ public class Runner {
 		try {
 			new Configure();
 			List<String> models = new ArrayList<String>();
-			// models.add("lexrank");
-			// models.add("sumblr");
-			// models.add("opinosis");
+			models.add("lexrank");
+			models.add("sumblr");
+			models.add("opinosis");
 			models.add("inc");
 			for (String model : models) {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(
@@ -27,10 +27,12 @@ public class Runner {
 					String generatedPath = String.format("%s/output/%s/%d_%s.txt", Configure.WORKING_DIRECTORY, model,
 							t, model);
 					bw.write(String.format("%d", t));
-					for (int K = 5; K <= 10; K += 5) {
+					for (int K = 10; K <= 20; K += 10) {
 						ROUGE rouge = new ROUGE(1, K, groundtruthPath, generatedPath);
+						double precision = rouge.getPrecision();
+						double recall = rouge.getRecall();
 						double f1Score = rouge.getF1Score();
-						bw.write(String.format(",%f", f1Score));
+						bw.write(String.format(",%f,%f,%f", precision, recall, f1Score));
 
 						System.out.printf("model = %s time = %d nTweets = %d f1 = %f\n", model, t, K, f1Score);
 					}

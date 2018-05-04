@@ -37,9 +37,9 @@ public class TwitterLDA {
 
 	private int nTopics;
 
-	private int burningPeriod = 50;
-	private int maxIteration = 50;
-	private int samplingGap = 10;
+	private int burningPeriod = 100;
+	private int maxIteration = 500;
+	private int samplingGap = 20;
 
 	private Random rand;
 	// hyperparameters
@@ -222,18 +222,23 @@ public class TwitterLDA {
 				step.tweets[nTweets].tweetID = tweet.getTweetId();
 				step.tweets[nTweets].terms = new int[nWwords];
 				nWwords = 0;
+				HashSet<Integer> uniqueTerms = new HashSet<Integer>();
 				for (String term : tweet.getTerms(preprocessingUtils)) {
 					if (removedTerms.contains(term)) {
 						continue;
 					}
 					step.tweets[nTweets].terms[nWwords] = term2Index.get(term);
+					uniqueTerms.add(step.tweets[nTweets].terms[nWwords]);
 					nWwords++;
 				}
+				step.tweets[nTweets].nUniqueTerms = uniqueTerms.size();
 				nTweets++;
 			}
-			System.out.printf("\t\t\t step-%d: #tweets = %d\n", steps.size(), step.tweets.length);
+			System.out.printf("\t\t\t step-%d: index = %d  #tweets = %d\n", step.stepIndex, steps.size(),
+					step.tweets.length);
 			steps.add(step);
 		}
+		// System.exit(-1);
 		tweetVocabulary = new String[term2Index.size()];
 		for (Map.Entry<String, Integer> pair : term2Index.entrySet()) {
 			tweetVocabulary[pair.getValue()] = pair.getKey();
@@ -672,7 +677,7 @@ public class TwitterLDA {
 			}
 			for (Step step : window) {
 				for (int t = 0; t < step.tweets.length; t++) {
-					if (step.tweets[t].terms.length >= 3 && step.tweets[t].inferedPosteriorProb >= 0.8) {
+					if (step.tweets[t].nUniqueTerms >= 5 && step.tweets[t].inferedPosteriorProb >= 0.8) {
 						topicTweetCount[step.tweets[t].inferedTopic]++;
 					}
 				}
@@ -688,7 +693,7 @@ public class TwitterLDA {
 			int totalCount = 0;
 			for (Step step : window) {
 				for (int t = 0; t < step.tweets.length; t++) {
-					if (step.tweets[t].terms.length >= 3 && step.tweets[t].inferedPosteriorProb >= 0.8) {
+					if (step.tweets[t].nUniqueTerms >= 5 && step.tweets[t].inferedPosteriorProb >= 0.8) {
 						int z = step.tweets[t].inferedTopic;
 						stepTweets[z][topicTweetCount[z]] = step;
 						topicTweets[z][topicTweetCount[z]] = t;
@@ -712,8 +717,9 @@ public class TwitterLDA {
 				for (int i = 0; i < topicTweetCount[z]; i++) {
 					Step step = stepTweets[z][i];
 					int t = topicTweets[z][i];
-					// tweetImportance[i] = getTweetSumProbUniqueWord(w, t, z);
-					tweetImportance[i] = step.tweets[t].inferedLikelihood / step.tweets[t].terms.length;
+					tweetImportance[i] = getTweetSumProbUniqueWord(step.stepIndex - 1, t, z);
+					// tweetImportance[i] = step.tweets[t].inferedLikelihood /
+					// step.tweets[t].terms.length;
 				}
 				List<Integer> topIndexes = RankingUtils.getIndexTopElements(1, tweetImportance);
 				for (int j : topIndexes) {

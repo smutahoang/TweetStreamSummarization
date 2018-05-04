@@ -695,7 +695,7 @@ public class TweetPreprocessingUtils {
 
 		// nlpUtils.checkStopWordList();
 
-		String message = "the federal lawsuit will be filed on behalf of more than 20 individuals  #muslimban https://t.co/lDUfnbSLpn";
+		String message = "Neil Gorsuch on the Supreme Court: Facts about Donald Trump's pick https://t.co/BVrO15VF7k by #ForexBTC via @c0nvey";
 		System.out.printf("message = [[%s]]\n", message);
 		List<String> terms = nlpUtils.extractTermInTweet(message);
 

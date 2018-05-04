@@ -39,7 +39,7 @@ public class Configure {
 
 	// constants to select top tweets for each subtopics
 	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
-	public static double JACCARD_THRESOLD = 0.3; // to ignore similar tweets for
+	public static double JACCARD_THRESOLD = 0.2; // to ignore similar tweets for
 													// each subtopic
 	public static boolean OVERLAPPING_TOPICS = false;
 	public static double JACCARD_UTILITY = 0.01; // to remove redundancy in the
@@ -136,9 +136,9 @@ public class Configure {
 		// WORKING_DIRECTORY =
 		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		// WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "/home/hoang/tss";
+		// WORKING_DIRECTORY = "/home/hoang/tss";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 

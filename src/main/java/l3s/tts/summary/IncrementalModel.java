@@ -19,7 +19,6 @@ import l3s.tts.utils.TweetStream;
 
 public class IncrementalModel extends SummarizationModel {
 	private TweetStream stream;
-	private String outputPath;
 	private LinkedList<Tweet> recentTweets;
 	private long refTime;
 	private int currentTimeStep;
@@ -134,7 +133,7 @@ public class IncrementalModel extends SummarizationModel {
 		}
 
 		long time7 = System.currentTimeMillis();
-		summary = getTopKDiversifiedTweets(subtopics);
+		summary = getTopKDiversifiedTweets(subtopics, currentTimeStep);
 
 		long time8 = System.currentTimeMillis();
 
@@ -317,7 +316,7 @@ public class IncrementalModel extends SummarizationModel {
 		}
 
 		long time6 = System.currentTimeMillis();
-		summary = getTopKDiversifiedTweets(subtopics);
+		summary = getTopKDiversifiedTweets(subtopics, currentTimeStep);
 
 		long time7 = System.currentTimeMillis();
 		subtopics.clear();
@@ -343,6 +342,14 @@ public class IncrementalModel extends SummarizationModel {
 				bw.write(String.format("%s\n", tweet.getText().replace("\n", " ")));
 			}
 			bw.close();
+
+			bw = new BufferedWriter(new FileWriter(String.format("%s/all_inc.txt", outputPath, currentTimeStep), true));
+			bw.write(String.format("********** step = %d ************ \n", currentTimeStep));
+			for (Tweet tweet : summary) {
+				bw.write(String.format("%s\n", tweet.getText().replace("\n", " ")));
+			}
+			bw.close();
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(-1);
