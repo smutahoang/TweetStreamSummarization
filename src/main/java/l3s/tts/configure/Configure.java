@@ -38,7 +38,8 @@ public class Configure {
 	public static double NOVELTY_RATIO = 0.1;// 10%
 
 	// constants to select top tweets for each subtopics
-	public static int TWEETS_IN_EACH_SUBTOPIC = 5;
+	// public static int SUBTOPIC_TWEETS_POOL_SIZE = 5;
+	public static int TWEETS_IN_EACH_SUBTOPIC = 50;
 	public static double JACCARD_THRESOLD = 0.2; // to ignore similar tweets for
 													// each subtopic
 	public static boolean OVERLAPPING_TOPICS = false;
@@ -83,16 +84,19 @@ public class Configure {
 	public static String SUMBLR_TWEET_KEY_VALUE_SEPARATOR = "=";
 
 	public static double SUMBLR_AMPLIFY_FACTOR = 1000;
-	public static int SUMBLR_NUM_REPRESENTATIVE_TWEETS = 10;
-	public static double SUMBLR_BETA = 0.3;
+	public static int SUMBLR_NUM_REPRESENTATIVE_TWEETS = 40;
+	public static double SUMBLR_BETA = 0.07;
 	public static int SUMBLR_MU_THRESHOLD = 50;
 	public static double SUMBLR_MERGE_THRESHOLD = 0.7;
-	public static int SUMBLR_MERGE_TRIGGER = 50;
+	public static int SUMBLR_MERGE_TRIGGER = 150;
 	public static int SUMBLR_NUMBER_INITIAL_TWEETS = 100;
 	public static int SUMBLR_NUMBER_INITIAL_CLUSTERS = 10;
 	public static int SUMBLR_NUMBER_KMEANS_ITERATIONS = 10;
+	public static double SUMBLR_LAMBDA = 0.4;
 
 	public static int LEXRANK_NUM_ITERATIONS = 50;
+	public static double LEXRANK_MIN_EDGE_SIMILARITY = 0.2;
+	public static double LEXRANK_MAX_JC_COEFFICIENT = 0.5;
 
 	// constants for opinosis model
 
@@ -130,15 +134,16 @@ public class Configure {
 	public static int MAX_SUMMARIES = 20;
 	public static double DUPLICATE_COLLAPSE_THRESHOLD = 0.5;
 	public static scoreFunction SCORING_FUNCTION = scoreFunction.GAIN_WEIGHTED_REDUNDANCY_BY_LOG_LEVEL;
+	public static double TERM_WEIGHT_DECAY = 0.5;
 
 	public Configure() {
 		// TODO Auto-generated constructor stub
 		// WORKING_DIRECTORY =
 		// "D:/Alexandria/summarization/TweetStreamSummarization/data";
 
-		WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization/data";
+		// WORKING_DIRECTORY = "E:/code/java/TweetStreamSummarization";
 
-		// WORKING_DIRECTORY = "/home/hoang/tss";
+		WORKING_DIRECTORY = "/home/hoang/tss";
 
 		STOPWORD_PATH = String.format("%s/stopwords", WORKING_DIRECTORY);
 

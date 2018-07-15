@@ -153,15 +153,21 @@ public class TCV {
 	public double getSimilarity(Tweet tweet) {
 		double sim = 0;
 		double tweetNorm = 0;
+		boolean flag = true;
 		for (Map.Entry<String, Double> pair : tweet.getVector().entrySet()) {
 			String word = pair.getKey();
 			double value = pair.getValue();
 			if (weightedSumTweetVector.containsKey(word)) {
 				sim += pair.getValue() * weightedSumTweetVector.get(word);
+				flag = false;
 			}
 			tweetNorm += value * value;
 		}
-		return sim / Math.sqrt(tweetNorm * sumSQRWeightedSum);
+		if (flag) {
+			return 0;
+		} else {
+			return sim / Math.sqrt(tweetNorm * sumSQRWeightedSum);
+		}
 	}
 
 	/***
@@ -195,11 +201,14 @@ public class TCV {
 			double value = pair.getValue();
 			if (sumNormalizedTweetVector.containsKey(word)) {
 				double preNormalizedValue = sumNormalizedTweetVector.get(word);
-				sumNormalizedTweetVector.put(word, value / norm + preNormalizedValue);
 				double preWeightedSumValue = weightedSumTweetVector.get(word);
+
+				sumNormalizedTweetVector.put(word, value / norm + preNormalizedValue);
 				weightedSumTweetVector.put(word, value * weight + preWeightedSumValue);
+
 				dotProd -= preNormalizedValue * preWeightedSumValue;
-				dotProd += (value * weight + preWeightedSumValue) * (value * weight + preWeightedSumValue);
+				dotProd += (value / norm + preNormalizedValue) * (value * weight + preWeightedSumValue);
+
 				sumSQRWeightedSum -= preWeightedSumValue * preWeightedSumValue;
 				sumSQRWeightedSum += (value * weight + preWeightedSumValue) * (value * weight + preWeightedSumValue);
 			} else {
@@ -232,7 +241,12 @@ public class TCV {
 			}
 		}
 		// update average similarity
+		nTweets++;
 		avgSimilarity = dotProd / (nTweets * Math.sqrt(sumSQRWeightedSum));
+		if (avgSimilarity > 1.0001) {
+			System.out.printf("In addTweet: avg = %f\n", avgSimilarity);
+			System.exit(-1);
+		}
 	}
 
 	/***
@@ -282,7 +296,7 @@ public class TCV {
 				double w = other.getWeightedSumTweetVector().get(word);
 				weightedSumTweetVector.put(word, w);
 				dotProd += pair.getValue() * w;
-				sumSQRWeightedSum -= w * w;
+				sumSQRWeightedSum += w * w;
 			}
 		}
 
@@ -302,14 +316,24 @@ public class TCV {
 				TweetTuple tuple = new TweetTuple(tweet, getSimilarity(tweet));
 				queue.add(tuple);
 			}
-			queue.poll();
+			while (queue.size() > Configure.SUMBLR_NUM_REPRESENTATIVE_TWEETS) {
+				queue.poll();
+				// System.out.printf("remove sim = %f\n",
+				// queue.poll().getSimilarity());
+			}
+			// System.out.println("**************************************************");
 			tweets.clear();
 			while (queue.size() > 0) {
 				tweets.add(queue.poll().getTweet());
 			}
 		}
 		// update average similarity
+		nTweets += other.getNTweets();
 		avgSimilarity = dotProd / (nTweets * Math.sqrt(sumSQRWeightedSum));
+		if (avgSimilarity >= 1) {
+			System.out.printf("In merge: avgSimilarity = %f\n", avgSimilarity);
+			System.exit(-1);
+		}
 	}
 
 	/***

@@ -66,6 +66,26 @@ public class ROUGE {
 		return (double) intersection / generatedSum.size();
 	}
 
+	public Set<String> FailedTerms() {
+		Set<String> failedTerms = new HashSet<String>();
+		for (String term : generatedSum) {
+			if (!inferSum.contains(term)) {
+				failedTerms.add(term);
+			}
+		}
+		return failedTerms;
+	}
+
+	public Set<String> missedTerms() {
+		Set<String> missedTerms = new HashSet<String>();
+		for (String term : inferSum) {
+			if (!generatedSum.contains(term)) {
+				missedTerms.add(term);
+			}
+		}
+		return missedTerms;
+	}
+
 	public double getRecall() {
 		Set<String> union = new HashSet<String>();
 		union.addAll(inferSum);

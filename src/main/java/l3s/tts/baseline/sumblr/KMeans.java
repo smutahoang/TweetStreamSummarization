@@ -64,6 +64,9 @@ public class KMeans {
 				int index = -1;
 				double distance = Double.POSITIVE_INFINITY;
 				for (int c = 0; c < nMembers.length; c++) {
+					if (!means.containsKey(c)) {
+						continue;
+					}
 					HashMap<String, Double> vector = means.get(c);
 					double d = 0;
 					for (Map.Entry<String, Double> pair : tweet.getVector().entrySet()) {

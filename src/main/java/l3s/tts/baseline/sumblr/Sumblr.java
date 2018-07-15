@@ -5,13 +5,13 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.PriorityQueue;
 
 import l3s.tts.baseline.lexrank.LexRank;
 import l3s.tts.configure.Configure;
 import l3s.tts.configure.Configure.UpdatingType;
+import l3s.tts.utils.KeyValuePair;
 import l3s.tts.utils.TimeUtils;
 import l3s.tts.utils.Tweet;
 import l3s.tts.utils.TweetPreprocessingUtils;
@@ -147,18 +147,40 @@ public class Sumblr {
 				cCluster = cluster;
 			}
 		}
-		if (similarity < Configure.SUMBLR_BETA * cCluster.getAvgSimilarity())
+		if (cCluster == null) {
+			System.out.println("*****************************");
+			System.out.printf("tweet = %s\n", tweet.getText());
+			for (String term : tweet.getVector().keySet()) {
+				System.out.printf("\t\tterm = %s value = %f\n", tweet.getVector().get(term));
+			}
+			for (TCV cluster : clusters.values()) {
+				double s = cluster.getSimilarity(tweet);
+				System.out.printf("cluster = %d sumSQRWeightedSum = %f sim = %f\n", cluster.getClusterId(),
+						cluster.getSumSQRWeightedSum(), s);
+			}
+		}
+		if (similarity >= Configure.SUMBLR_BETA * cCluster.getAvgSimilarity()) {
+			/*
+			 * System.out.printf(
+			 * "sim = %f \t beta*avgSim = %f avgSim = %f nTweets = %d\n",
+			 * similarity, Configure.SUMBLR_BETA * cCluster.getAvgSimilarity(),
+			 * cCluster.getAvgSimilarity(), cCluster.getNTweets());
+			 */
 			return cCluster;
-		else
+
+		} else {
 			return null;
+		}
 	}
 
 	public void process() {
 		System.out.println("tracking");
 		Tweet tweet = null;
 		while ((tweet = stream.getTweet()) != null) {
-			nTweets++;
-			tweet.getTerms(preprocessingUtils);
+			if (tweet.getTerms(preprocessingUtils).size() < 1) {
+				continue;
+			}			
+			nTweets++;			
 			List<String> terms = tweet.getTerms(preprocessingUtils);
 			for (String term : terms) {
 				if (termTweetCount.containsKey(term)) {
@@ -189,19 +211,71 @@ public class Sumblr {
 		System.out.println("generating summary");
 		deleteOutdateClusters();
 		mergeClusters();
+		/*
+		 * for (TCV c : clusters.values()) { System.out.printf(
+		 * "cluster_%d avgSim = %f nTweets = %d\n", c.getClusterId(),
+		 * c.getAvgSimilarity(), c.getNTweets()); }
+		 */
+
 		List<Tweet> tweets = new ArrayList<Tweet>();
+		List<Integer> tweetCluster = new ArrayList<Integer>();
+		int maxSize = -1;
 		for (TCV cluster : clusters.values()) {
 			for (Tweet tweet : cluster.getTweets()) {
 				tweets.add(tweet);
+				tweetCluster.add(cluster.getClusterId());
+			}
+			if (cluster.getNTweets() > maxSize) {
+				maxSize = cluster.getNTweets();
 			}
 		}
 		System.out.printf(" -------------- #tweets = %d\n", tweets.size());
-		List<Tweet> selectedTwets = lexRanker.summary(tweets, 0.2, true, 20, 0.5);
+
+		KeyValuePair[] rankedList = lexRanker.rank(tweets, Configure.LEXRANK_MIN_EDGE_SIMILARITY, true);
+
+		List<Integer> selectedIndexes = new ArrayList<Integer>();
+		HashSet<Integer> candidates = new HashSet<Integer>();
+		double[] scores = new double[tweets.size()];
+		double[] avgSim = new double[tweets.size()];
+		for (int r = 0; r < rankedList.length; r++) {
+			candidates.add(r);
+			int index = rankedList[r].getIntKey();
+			double score = rankedList[r].getDoubleValue();
+			int c = tweetCluster.get(index);
+			scores[index] = Configure.SUMBLR_LAMBDA * ((double) clusters.get(c).getNTweets() / maxSize) * score;
+			avgSim[index] = 0;
+		}
+
+		int nSelected = 0;
+		while (nSelected < 20) {
+			int maxIndex = -1;
+			double maxScore = Double.NEGATIVE_INFINITY;
+			int maxRank = -1;
+			for (int r : candidates) {
+				int index = rankedList[r].getIntKey();
+				double score = scores[index] - (1 - Configure.SUMBLR_LAMBDA) * avgSim[index];
+				if (score > maxScore) {
+					maxIndex = index;
+					maxScore = score;
+					maxRank = r;
+				}
+			}
+			selectedIndexes.add(maxIndex);
+			candidates.remove(maxRank);
+			Tweet addedTweet = tweets.get(maxIndex);
+			for (int r : candidates) {
+				int index = rankedList[r].getIntKey();
+				double sim = tweets.get(index).getSimilarity(addedTweet);
+				avgSim[index] = (avgSim[index] * nSelected + sim) / (nSelected + 1);
+			}
+			nSelected++;
+		}
 
 		try {
 			BufferedWriter bw = new BufferedWriter(
 					new FileWriter(String.format("%s/%d_sumblr.txt", outputPath, currentTimeStep)));
-			for (Tweet tweet : selectedTwets) {
+			for (int index : selectedIndexes) {
+				Tweet tweet = tweets.get(index);
 				bw.write(String.format("%s\n", tweet.getText().replace("\n", " ")));
 			}
 			bw.close();
@@ -210,10 +284,11 @@ public class Sumblr {
 			System.exit(-1);
 		}
 
-		System.out.printf("******************time = %d***********\n", currentTimeStep);
-		for (Tweet tweet : selectedTwets) {
-			System.out.printf("[selected tweet] %s\n", tweet.getText());
-		}
+		// System.out.printf("******************time = %d***********\n",
+		// currentTimeStep);
+		// for (Tweet tweet : selectedTwets) {
+		// System.out.printf("[selected tweet] %s\n", tweet.getText());
+		// }
 	}
 
 	/***
@@ -238,6 +313,7 @@ public class Sumblr {
 	 * merge cluster
 	 */
 	private void mergeClusters() {
+		System.out.println("merging clusters");
 		if (clusters.size() < Configure.SUMBLR_MERGE_TRIGGER) {
 			return;
 		}
@@ -250,6 +326,8 @@ public class Sumblr {
 			for (int j = i + 1; j < clusterIndexes.size(); j++) {
 				TCV cluster2 = clusters.get(clusterIndexes.get(j));
 				double similarity = cluster1.getSimilarity(cluster2);
+				// System.out.printf("cluster_1 = %d cluster_2 = %d sim = %f\n",
+				// i, j, similarity);
 				ClusterPair pair = new ClusterPair(clusterIndexes.get(i), clusterIndexes.get(j), similarity);
 				queue.add(pair);
 			}
@@ -259,16 +337,22 @@ public class Sumblr {
 			if (nRemovedClusters >= clusters.size() * (1 - Configure.SUMBLR_MERGE_THRESHOLD)) {
 				return;
 			}
-			nRemovedClusters++;
 
 			ClusterPair pair = queue.remove();
 			int cId1 = pair.getClusterId1();
 			int cId2 = pair.getClusterId2();
+
 			boolean flag1 = merge.containsKey(cId1);
 			boolean flag2 = merge.containsKey(cId2);
+
+			// System.out.printf("cluster_1 = %d \t cluster_2 = %d\n", cId1,
+			// cId2);
+
 			if (!flag1 && !flag2) {
 				clusters.get(cId1).merge(clusters.get(cId2));
 				clusters.remove(cId2);
+				// System.out.printf("\t\tfalse - false: removed %d\n", cId2);
+				nRemovedClusters++;
 				merge.put(cId1, cId1);
 				merge.put(cId2, cId1);
 				HashSet<Integer> subs = new HashSet<Integer>();
@@ -278,19 +362,28 @@ public class Sumblr {
 			} else if (flag1 && !flag2) {
 				clusters.get(merge.get(cId1)).merge(clusters.get(cId2));
 				clusters.remove(cId2);
+				// System.out.printf("\t\ttrue - false: removed %d\n", cId2);
+				nRemovedClusters++;
 				merge.put(cId2, merge.get(cId1));
 				subClusters.get(merge.get(cId1)).add(cId2);
 			} else if (!flag1 && flag2) {
 				clusters.get(merge.get(cId2)).merge(clusters.get(cId1));
 				clusters.remove(cId1);
+				// System.out.printf("\t\tfalse - true: removed %d\n", cId1);
+				nRemovedClusters++;
 				merge.put(cId1, merge.get(cId2));
 				subClusters.get(merge.get(cId2)).add(cId1);
 			} else {
-				if (merge.get(cId1) == merge.get(cId2)) {
+				// System.out.printf("\t\ttrue-true: merge1 = %d merge2 = %d\n",
+				// merge.get(cId1), merge.get(cId2));
+				if (merge.get(cId1).intValue() == merge.get(cId2).intValue()) {
+					// System.out.println("\t\t\tcontinue");
 					continue;
 				}
 				clusters.get(merge.get(cId1)).merge(clusters.get(merge.get(cId2)));
 				clusters.remove(merge.get(cId2));
+				// System.out.printf("\t\t\tremoved %d\n", merge.get(cId2));
+				nRemovedClusters++;
 				for (int c : subClusters.get(merge.get(cId2))) {
 					merge.put(c, merge.get(cId1));
 					subClusters.get(merge.get(cId1)).add(c);
@@ -298,5 +391,6 @@ public class Sumblr {
 
 			}
 		}
+		System.out.printf("\t\t%d clusters left\n", clusters.size());
 	}
 }
